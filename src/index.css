@@ -1,0 +1,343 @@
+/* AegisGrid Mission-Control Tactical Design System */
+:root {
+  --bg-deep: #06080e;
+  --bg-surface: #0a0f1d;
+  --bg-card: rgba(14, 21, 37, 0.75);
+  --bg-card-hover: rgba(20, 30, 52, 0.85);
+  --bg-card-active: rgba(24, 37, 64, 0.95);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(0, 240, 255, 0.35);
+  --border-danger: rgba(255, 51, 102, 0.45);
+  --border-safe: rgba(16, 185, 129, 0.45);
+
+  --cyan: #00f0ff;
+  --cyan-glow: rgba(0, 240, 255, 0.25);
+  --blue-tactical: #2563eb;
+  --purple-mesh: #8b5cf6;
+  --emerald-safe: #10b981;
+  --amber-warning: #f59e0b;
+  --red-critical: #ff3366;
+  --red-glow: rgba(255, 51, 102, 0.35);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-cyan: #38bdf8;
+
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border-subtle);
+  --shadow-glow: 0 0 25px rgba(0, 240, 255, 0.2);
+  --shadow-red-glow: 0 0 25px rgba(255, 51, 102, 0.3);
+
+  --transition-fast: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tactical Background Grid Pattern */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ambient Radial Glows */
+body::after {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: 30%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.04) 0%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography Defaults */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Glassmorphism Tactical Panels */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-normal);
+}
+
+.glass-panel:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Status Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+}
+
+.badge-red {
+  background: rgba(255, 51, 102, 0.15);
+  color: #ff3366;
+  border: 1px solid rgba(255, 51, 102, 0.35);
+  box-shadow: 0 0 12px rgba(255, 51, 102, 0.2);
+}
+
+.badge-yellow {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.badge-green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.badge-cyan {
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+}
+
+.badge-purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+/* Pulsing Dots */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+  background-color: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--cyan);
+  animation: pulse-ring 2s infinite ease-out;
+}
+
+.live-dot-red {
+  background-color: var(--red-critical);
+  box-shadow: 0 0 10px var(--red-critical);
+}
+
+.live-dot-red::after {
+  border-color: var(--red-critical);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Interactive Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  user-select: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00d2ff 0%, #0077ff 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 162, 255, 0.35);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 24px rgba(0, 162, 255, 0.5);
+  filter: brightness(1.1);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ff3366 0%, #c81e43 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(255, 51, 102, 0.4);
+}
+
+.btn-danger:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 26px rgba(255, 51, 102, 0.55);
+  filter: brightness(1.1);
+}
+
+.btn-outline {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-cyan {
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+}
+
+.btn-cyan:hover {
+  background: rgba(0, 240, 255, 0.2);
+  border-color: var(--cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(6, 8, 14, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.4);
+}
+
+/* Radar Scan Line Animation */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.radar-sweep-beam {
+  animation: radar-sweep 6s linear infinite;
+  transform-origin: center;
+}
+
+/* Scanning line on AI Triage */
+@keyframes laser-scan {
+  0% { top: 0%; opacity: 0.9; }
+  50% { opacity: 1; }
+  100% { top: 100%; opacity: 0.9; }
+}
+
+.laser-scanner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00f0ff, #fff, #00f0ff, transparent);
+  box-shadow: 0 0 15px #00f0ff, 0 0 30px #00f0ff;
+  animation: laser-scan 2.4s ease-in-out infinite alternate;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Subtle Glowing Card Borders */
+.glow-border {
+  position: relative;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.5), transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
