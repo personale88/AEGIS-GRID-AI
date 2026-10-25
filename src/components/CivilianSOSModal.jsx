@@ -17,7 +17,7 @@ import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
 
 export default function CivilianSOSModal() {
-  const { isSOSModalOpen, setIsSOSModalOpen, addSOSReport } = useOperations();
+  const { isSOSModalOpen, setIsSOSModalOpen, addSOSReport, userLiveLocation, detectLiveLocation } = useOperations();
 
   const [headcount, setHeadcount] = useState(3);
   const [selectedConditions, setSelectedConditions] = useState(['Rising Floodwater']);
@@ -64,8 +64,10 @@ export default function CivilianSOSModal() {
       addSOSReport({
         id: `sos-${Date.now().toString().slice(-4)}`,
         title: `CIVILIAN SOS: ${selectedConditions.join(', ')} (${headcount} People)`,
-        location: details ? details : 'Sector 4 Residential Block (Geo-Fixed)',
+        location: details ? details : (userLiveLocation ? `Chennai (GPS ${userLiveLocation.lat.toFixed(4)}°N, ${userLiveLocation.lng.toFixed(4)}°E)` : 'Velachery Lowlands, Chennai (Geo-Fixed)'),
         coords: { x: 38 + Math.floor(Math.random() * 20), y: 35 + Math.floor(Math.random() * 20) },
+        lat: userLiveLocation ? userLiveLocation.lat : 12.9790 + (Math.random() - 0.5) * 0.02,
+        lng: userLiveLocation ? userLiveLocation.lng : 80.2210 + (Math.random() - 0.5) * 0.02,
         triageCode: 'RED',
         severity: 'Immediate Life Threat',
         victims: headcount,
@@ -260,16 +262,34 @@ export default function CivilianSOSModal() {
               </div>
             </div>
 
-            {/* Additional details */}
+            {/* Additional details & GPS autofill */}
             <div>
-              <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                Specific Landmarks / Floor / Apartment Number:
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Specific Landmarks / Floor / Apartment:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    detectLiveLocation();
+                    if (userLiveLocation) {
+                      setDetails(`Chennai, TN (GPS: ${userLiveLocation.lat.toFixed(4)}°N, ${userLiveLocation.lng.toFixed(4)}°E)`);
+                    } else {
+                      setDetails('Velachery Gandhi Nagar, Chennai, Tamil Nadu, India');
+                    }
+                  }}
+                  className="btn btn-outline btn-xs"
+                  style={{ fontSize: '10px', padding: '1px 6px', gap: '3px' }}
+                >
+                  <MapPin size={11} color="var(--accent)" />
+                  <span>Use My Real GPS</span>
+                </button>
+              </div>
               <input
                 type="text"
                 value={details}
                 onChange={e => setDetails(e.target.value)}
-                placeholder="e.g. 2nd floor balcony with red towel, water rising..."
+                placeholder="e.g. Velachery 100-Ft Rd, 2nd floor balcony, water rising..."
                 className="input"
                 style={{ width: '100%', height: '34px', fontSize: '12px' }}
               />

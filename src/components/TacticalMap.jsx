@@ -33,7 +33,10 @@ export default function TacticalMap({
     responders, 
     shelters, 
     hazards, 
-    routes 
+    routes,
+    userLiveLocation,
+    isDetectingLocation,
+    detectLiveLocation
   } = useOperations();
 
   const mapContainerRef = useRef(null);
@@ -85,7 +88,8 @@ export default function TacticalMap({
         shelters: L.layerGroup().addTo(map),
         units: L.layerGroup().addTo(map),
         incidents: L.layerGroup().addTo(map),
-        evacRoutes: L.layerGroup().addTo(map)
+        evacRoutes: L.layerGroup().addTo(map),
+        userLocation: L.layerGroup().addTo(map)
       };
     }
 
@@ -174,6 +178,43 @@ export default function TacticalMap({
       });
     }
   }, [selectedIncidentId, incidents]);
+
+  // 4b. Render Real Device Live GPS Location Pin
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !layersGroupRef.current.userLocation) return;
+    const group = layersGroupRef.current.userLocation;
+    group.clearLayers();
+
+    if (userLiveLocation && userLiveLocation.lat && userLiveLocation.lng) {
+      const userIcon = L.divIcon({
+        className: 'user-live-gps-pin',
+        html: `
+          <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; inset: 0; border-radius: 50%; background: rgba(37, 99, 235, 0.45); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="position: relative; width: 22px; height: 22px; border-radius: 50%; background: #2563EB; border: 3px solid #ffffff; box-shadow: 0 0 14px rgba(37, 99, 235, 0.95); display: flex; align-items: center; justify-content: center;">
+              <div style="width: 6px; height: 6px; background: white; border-radius: 50%;"></div>
+            </div>
+          </div>
+        `,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19]
+      });
+
+      const userMarker = L.marker([userLiveLocation.lat, userLiveLocation.lng], { icon: userIcon });
+      userMarker.bindTooltip(`
+        <strong>🎯 YOU ARE HERE (GPS TELEMETRY LOCKED)</strong><br/>
+        <span>Lat: ${userLiveLocation.lat.toFixed(5)}° N, Lon: ${userLiveLocation.lng.toFixed(5)}° E</span><br/>
+        <span style="color: #2563EB; font-weight: 600;">Accuracy: ±${Math.round(userLiveLocation.accuracy || 15)}m</span>
+      `, {
+        direction: 'top',
+        className: 'tactical-map-tooltip'
+      });
+      group.addLayer(userMarker);
+
+      map.flyTo([userLiveLocation.lat, userLiveLocation.lng], 14, { duration: 1.2 });
+    }
+  }, [userLiveLocation]);
 
   // 5. Render Real Geospatial Overlay Layers
   useEffect(() => {
@@ -644,6 +685,31 @@ export default function TacticalMap({
             title="Center Operational Region"
           >
             <Crosshair size={14} />
+          </button>
+
+          {/* Quick GPS Locate Me Button */}
+          <button 
+            onClick={() => {
+              if (userLiveLocation) {
+                mapInstanceRef.current?.flyTo([userLiveLocation.lat, userLiveLocation.lng], 14, { duration: 1.0 });
+                tacticalAudio.playRadarPing();
+              } else {
+                detectLiveLocation();
+              }
+            }} 
+            className="btn btn-xs" 
+            style={{ 
+              padding: '2px 7px',
+              fontSize: '11px',
+              fontWeight: 600,
+              gap: '4px',
+              backgroundColor: userLiveLocation ? 'var(--accent)' : 'var(--surface-secondary)',
+              color: userLiveLocation ? 'var(--text-on-accent)' : 'var(--text-secondary)'
+            }} 
+            title="Locate my real device GPS position on the map"
+          >
+            <Compass size={13} style={{ animation: isDetectingLocation ? 'spin 1s linear infinite' : 'none' }} />
+            <span>{isDetectingLocation ? 'GPS...' : userLiveLocation ? 'My GPS' : 'GPS'}</span>
           </button>
 
           {onToggleFullscreen && (

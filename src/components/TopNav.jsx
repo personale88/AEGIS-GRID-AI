@@ -14,7 +14,8 @@ import {
   Volume2,
   VolumeX,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Crosshair
 } from 'lucide-react';
 import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
@@ -35,7 +36,10 @@ export default function TopNav({ onOpenMobileSidebar }) {
     incidents,
     selectIncident,
     shelters,
-    responders
+    responders,
+    userLiveLocation,
+    isDetectingLocation,
+    detectLiveLocation
   } = useOperations();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -110,20 +114,43 @@ export default function TopNav({ onOpenMobileSidebar }) {
           </h2>
         </div>
 
-        {/* Operational Region Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-          <MapPin size={14} color="var(--accent)" />
-          <select
-            value={selectedScenarioId}
-            onChange={(e) => changeScenario(e.target.value)}
-            className="select"
-            style={{ padding: '4px 8px', fontSize: '12px', fontWeight: 500 }}
-            id="region-selector"
+        {/* Operational Region Selector & GPS Quick-Lock */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MapPin size={14} color="var(--accent)" />
+            <select
+              value={selectedScenarioId}
+              onChange={(e) => changeScenario(e.target.value)}
+              className="select"
+              style={{ padding: '4px 8px', fontSize: '12px', fontWeight: 600 }}
+              id="region-selector"
+            >
+              <option value="chennai">Chennai (Cyclone Michaung)</option>
+              <option value="hurricane">Metropolis Bay (Hurricane Zephyr)</option>
+              <option value="earthquake">Cascadia Core (M7.2 Quake)</option>
+              <option value="wildfire">Diablo Canyon (Megafire)</option>
+            </select>
+          </div>
+
+          {/* Real Device GPS Locate Me Button */}
+          <button
+            onClick={() => detectLiveLocation()}
+            className="btn btn-outline btn-xs"
+            style={{
+              padding: '3px 8px',
+              fontSize: '11px',
+              fontWeight: 600,
+              gap: '4px',
+              borderColor: userLiveLocation ? 'var(--accent)' : 'var(--border-medium)',
+              backgroundColor: userLiveLocation ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+              color: userLiveLocation ? 'var(--accent)' : 'var(--text-secondary)'
+            }}
+            title="Lock on to your real device GPS coordinates"
+            id="btn-gps-locate"
           >
-            <option value="hurricane">Metropolis Bay (Hurricane Zephyr)</option>
-            <option value="earthquake">Cascadia Core (M7.2 Quake)</option>
-            <option value="wildfire">Diablo Canyon (Megafire)</option>
-          </select>
+            <Crosshair size={12} style={{ animation: isDetectingLocation ? 'spin 1s linear infinite' : 'none' }} />
+            <span>{isDetectingLocation ? 'Locating...' : userLiveLocation ? 'GPS Live' : 'Locate Me'}</span>
+          </button>
         </div>
       </div>
 

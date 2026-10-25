@@ -25,13 +25,32 @@ export function OperationsProvider({ children }) {
     tacticalAudio.playTacticalBeep(1200, 0.04, 0.03);
   };
 
-  // Scenario selection ('hurricane' | 'earthquake' | 'wildfire')
-  const [selectedScenarioId, setSelectedScenarioId] = useState('hurricane');
-  const scenarioData = SCENARIOS[selectedScenarioId];
+  // Scenario selection: default to 'chennai' if user is in Indian timezone (+05:30) or saved preference
+  const [selectedScenarioId, setSelectedScenarioId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('aegisgrid_scenario');
+      if (saved && SCENARIOS[saved]) return saved;
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const offset = new Date().getTimezoneOffset();
+        if (tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta' || offset === -330) {
+          return 'chennai';
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+    return 'chennai'; // Default to Chennai
+  });
+  const scenarioData = SCENARIOS[selectedScenarioId] || SCENARIOS.chennai;
+
+  // Live GPS / Device Geolocation state
+  const [userLiveLocation, setUserLiveLocation] = useState(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
   // Incidents state
   const [incidents, setIncidents] = useState(scenarioData.incidents);
-  const [selectedIncidentId, setSelectedIncidentId] = useState('inc-101');
+  const [selectedIncidentId, setSelectedIncidentId] = useState(scenarioData.incidents[0]?.id || 'inc-301');
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
 
   // Responders state
@@ -140,7 +159,11 @@ export function OperationsProvider({ children }) {
   // When scenario changes, synchronize internal state
   const changeScenario = (scenarioId) => {
     setSelectedScenarioId(scenarioId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('aegisgrid_scenario', scenarioId);
+    }
     const newScen = SCENARIOS[scenarioId];
+    if (!newScen) return;
     setIncidents(newScen.incidents);
     setResponders(newScen.units);
     setShelters(newScen.shelters);
@@ -157,6 +180,73 @@ export function OperationsProvider({ children }) {
       actor: 'Incident Commander',
       outcome: `Switched operational context to ${newScen.type}.`
     });
+  };
+
+  // Real device GPS detection
+  const detectLiveLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      addToast('GPS Geolocation is not supported by your current browser', 'critical');
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    tacticalAudio.playRadarPing();
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const liveLoc = {
+          lat: latitude,
+          lng: longitude,
+          accuracy,
+          timestamp: new Date().toLocaleTimeString(),
+          isLive: true
+        };
+        setUserLiveLocation(liveLoc);
+        setIsDetectingLocation(false);
+
+        // Check if within India or near Chennai (lat ~8 to 36, lng ~68 to 97)
+        const isIndia = latitude >= 8 && latitude <= 37 && longitude >= 68 && longitude <= 98;
+        const isNearChennai = Math.abs(latitude - 13.08) < 1.5 && Math.abs(longitude - 80.27) < 1.5;
+
+        if (isNearChennai || isIndia) {
+          if (selectedScenarioId !== 'chennai') {
+            changeScenario('chennai');
+          }
+          addToast(`🛰️ GPS LOCKED: Chennai Region (${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E)`, 'success');
+        } else {
+          addToast(`🛰️ GPS LOCKED: Device Coordinates (${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°)`, 'success');
+        }
+
+        logActivity({
+          type: 'GPS_LOCK',
+          title: 'Live Device Geolocation Lock Acquired',
+          incidentId: 'GPS-01',
+          actor: 'Local Device GPS',
+          outcome: `Coordinates: ${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E (±${Math.round(accuracy)}m).`
+        });
+      },
+      (err) => {
+        setIsDetectingLocation(false);
+        console.warn('Geolocation query warning:', err.message);
+        if (err.code === err.PERMISSION_DENIED) {
+          addToast('Location permission prompt dismissed. Switched to Chennai Emergency Mesh.', 'info');
+          if (selectedScenarioId !== 'chennai') {
+            changeScenario('chennai');
+          }
+        } else {
+          addToast('Acquiring location timed out. Defaulted to Chennai Emergency Grid.', 'warning');
+          if (selectedScenarioId !== 'chennai') {
+            changeScenario('chennai');
+          }
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
   };
 
   const addToast = (message, type = 'info') => {
@@ -320,6 +410,9 @@ export function OperationsProvider({ children }) {
         selectedScenarioId,
         scenarioData,
         changeScenario,
+        userLiveLocation,
+        isDetectingLocation,
+        detectLiveLocation,
         incidents,
         selectedIncidentId,
         selectedIncident,

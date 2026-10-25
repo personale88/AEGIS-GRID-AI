@@ -559,5 +559,260 @@ export const SCENARIOS = {
         ]
       }
     }
+  },
+
+  chennai: {
+    id: 'chennai',
+    name: 'Cyclone Michaung: Chennai Coastal Surge & Adyar River Inundation',
+    type: 'Hydrological & Cyclone Storm Surge',
+    threatLevel: 'DEFCON 1 - CRITICAL RED ALERT',
+    windSpeed: '110 km/h (Cyclonic Gale)',
+    precipitation: '195 mm / 24hr',
+    affectedArea: 'Greater Chennai Corporation (GCC) & Coastal Lowlands',
+    floodStage: '+3.6m Adyar & Cooum Inundation',
+    meshNodesActive: 3840,
+    activeIncidentsCount: 46,
+    civiliansEvacuated: 24500,
+    geoCenter: [13.0450, 80.2400],
+    zoom: 12,
+    hazards: [
+      {
+        id: 'h_ch1',
+        x: 48, y: 55, r: 24,
+        lat: 13.0180, lng: 80.2240, radiusMeters: 1400,
+        type: 'flood', label: 'Adyar River Basin & Saidapet Causeway Breach', depth: '3.8 meters', currentVelocity: '18 knots'
+      },
+      {
+        id: 'h_ch2',
+        x: 35, y: 68, r: 26,
+        lat: 12.9780, lng: 80.2210, radiusMeters: 1600,
+        type: 'flood', label: 'Velachery Low-Lying Residential Lake Inundation', depth: '4.2 meters (Rooftop Level)', currentVelocity: '12 knots'
+      },
+      {
+        id: 'h_ch3',
+        x: 75, y: 38, r: 20,
+        lat: 13.0550, lng: 80.2850, radiusMeters: 1200,
+        type: 'surge', label: 'Marina Beach & Santhome Coastal Tidal Surge', depth: '2.5 meters', currentVelocity: '24 knots'
+      },
+      {
+        id: 'h_ch4',
+        x: 52, y: 32, r: 18,
+        lat: 13.0730, lng: 80.2580, radiusMeters: 1000,
+        type: 'power', label: 'Cooum River Urban Drainage Stagnation & Downed 230kV Feeder', danger: 'Grid Short Circuit & Water Electrification Risk'
+      }
+    ],
+    shelters: [
+      {
+        id: 's_ch1',
+        name: 'Jawaharlal Nehru Indoor Stadium Disaster Camp (Central)',
+        x: 65, y: 22,
+        lat: 13.0836, lng: 80.2780,
+        capacity: 6500,
+        occupancy: 4820,
+        power: 'High-Capacity Diesel Genset 96%',
+        status: 'Optimal Intake',
+        supplies: { bloodUnits: 120, oxygenTanks: 75, waterLiters: 48000, traumaKits: 380, meals: 28000 }
+      },
+      {
+        id: 's_ch2',
+        name: 'Anna University Guindy Engineering Relief Hub',
+        x: 42, y: 58,
+        lat: 13.0125, lng: 80.2355,
+        capacity: 4000,
+        occupancy: 2950,
+        power: 'Rooftop Solar Microgrid 92%',
+        status: 'Optimal Intake',
+        supplies: { bloodUnits: 90, oxygenTanks: 50, waterLiters: 32000, traumaKits: 260, meals: 18000 }
+      },
+      {
+        id: 's_ch3',
+        name: 'Tambaram Air Force Base Medical Staging Field Hospital',
+        x: 20, y: 85,
+        lat: 12.9250, lng: 80.1200,
+        capacity: 5000,
+        occupancy: 3100,
+        power: 'Auxiliary Military Turbine 98%',
+        status: 'Trauma Hub Active',
+        supplies: { bloodUnits: 180, oxygenTanks: 110, waterLiters: 65000, traumaKits: 520, meals: 34000 }
+      },
+      {
+        id: 's_ch4',
+        name: 'Loyola College Relief Center (Nungambakkam)',
+        x: 50, y: 35,
+        lat: 13.0640, lng: 80.2400,
+        capacity: 3200,
+        occupancy: 2750,
+        power: 'Dual Generator 88%',
+        status: 'Optimal Intake',
+        supplies: { bloodUnits: 65, oxygenTanks: 35, waterLiters: 24000, traumaKits: 170, meals: 14000 }
+      }
+    ],
+    units: [
+      { id: 'u_ch1', callsign: 'NDRF 04 Battalion (Arakkonam QRF - Inflatable Zodiac Boats)', type: 'water_rescue', x: 44, y: 56, lat: 13.0190, lng: 80.2260, status: 'Active Extraction', target: 'Saidapet Causeway' },
+      { id: 'u_ch2', callsign: 'TNSDMA Autonomous Thermal Recon Drone Swarm-7', type: 'drone', x: 36, y: 66, lat: 12.9810, lng: 80.2230, status: 'Acoustic Void Scanning', target: 'Velachery Terraces' },
+      { id: 'u_ch3', callsign: 'Greater Chennai Corporation Heavy De-watering Team 12', type: 'ground_heavy', x: 54, y: 34, lat: 13.0710, lng: 80.2550, status: 'Active Pumping', target: 'Cooum Sluice Gate 4' },
+      { id: 'u_ch4', callsign: 'Indian Coast Guard SAR Hovercraft Taskforce', type: 'water_rescue', x: 73, y: 40, lat: 13.0530, lng: 80.2820, status: 'Coastal Patrol', target: 'Marina Fishermen Quarters' }
+    ],
+    incidents: [
+      {
+        id: 'inc-301',
+        title: 'Velachery Gandhi Nagar: 4-Story Apartment Submerged — 28 Citizens on Terrace',
+        location: 'Gandhi Nagar 2nd Main Rd, Velachery, Chennai',
+        coords: { x: 36, y: 67 },
+        lat: 12.9785,
+        lng: 80.2205,
+        triageCode: 'RED',
+        severity: 'Immediate Life Threat (Rising Water Level)',
+        victims: 28,
+        damageIndex: 94,
+        hazardType: 'Flash Flood / Ground Floor Fully Inundated (12ft depth)',
+        dispatched: true,
+        image: '/triage_flood.jpg',
+        aiAnalysis: {
+          confidence: '99.4%',
+          structureIntegrity: '44% (Hydrodynamic Scour at Foundation)',
+          waterDepthEst: '3.9 meters (Ground floor + Mezzanine under water)',
+          detectedFeatures: [
+            { label: 'Elderly Heart Patient & 3 Infants Signal SOS from Terrace', conf: '99%' },
+            { label: 'Submerged Electrical Junction Box (High Shock Hazard)', conf: '96%' },
+            { label: 'Strong Current Vectors toward Velachery Lake Sluice', conf: '94%' },
+            { label: 'Clear Terrace LZ for Drone Medical Drops & Winch Helicopter', conf: '97%' }
+          ],
+          recommendedAction: 'Deploy NDRF Inflatable Zodiacs via 100-ft Road + Drone Emergency Insulin Drop',
+          priorityUnits: 'NDRF 04 Battalion, TNSDMA Thermal Drone-7'
+        }
+      },
+      {
+        id: 'inc-302',
+        title: 'Saidapet Maraimalai Adigal Bridge Causeway Overflow (Critical Stranding)',
+        location: 'Anna Salai / Adyar River Causeway, Saidapet, Chennai',
+        coords: { x: 47, y: 54 },
+        lat: 13.0185,
+        lng: 80.2235,
+        triageCode: 'RED',
+        severity: 'Mass Transit Evacuation',
+        victims: 16,
+        damageIndex: 88,
+        hazardType: 'Adyar River Overtopping Road by 4.5 feet with violent 16-knot current',
+        dispatched: false,
+        image: '/triage_flood.jpg',
+        aiAnalysis: {
+          confidence: '97.2%',
+          structureIntegrity: '62%',
+          waterDepthEst: '1.4 meters on bridge roadway',
+          detectedFeatures: [
+            { label: 'MTC Transit Bus Trapped with 16 Passengers Inside', conf: '98%' },
+            { label: 'Water Level Rising 8cm every 15 minutes', conf: '95%' }
+          ],
+          recommendedAction: 'Anchor Heavy Tow Line from Guindy approach + High-Clearance Amphibious Truck',
+          priorityUnits: 'Tamil Nadu Fire & Rescue Services (TNFRS) Station 9'
+        }
+      },
+      {
+        id: 'inc-303',
+        title: 'OMR IT Corridor Thoraipakkam 230kV Substation Submerged',
+        location: 'Rajiv Gandhi Salai (OMR), Thoraipakkam, Chennai',
+        coords: { x: 40, y: 76 },
+        lat: 12.9410,
+        lng: 80.2370,
+        triageCode: 'YELLOW',
+        severity: 'Critical Infrastructure Hazard',
+        victims: 4,
+        damageIndex: 78,
+        hazardType: 'TANGEDCO Transformer Yard Submerged',
+        dispatched: false,
+        image: '/triage_flood.jpg',
+        aiAnalysis: {
+          confidence: '95.1%',
+          structureIntegrity: '72%',
+          waterDepthEst: '1.8 meters',
+          detectedFeatures: [
+            { label: 'Automated Breaker Trip Active; Emergency Shutdown Verified', conf: '96%' },
+            { label: 'Auxiliary Generator Diesel Tanks Floating', conf: '92%' }
+          ],
+          recommendedAction: 'Deploy GCC Heavy Dewatering Diesel Pump + TANGEDCO Linemen Escort',
+          priorityUnits: 'GCC Dewatering Team 12'
+        }
+      },
+      {
+        id: 'inc-304',
+        title: 'Royapuram Kasimedu Fishing Harbor Sea Surge & Boat Mooring Breach',
+        location: 'Kasimedu Wharf, Royapuram, North Chennai',
+        coords: { x: 72, y: 18 },
+        lat: 13.1120,
+        lng: 80.2970,
+        triageCode: 'YELLOW',
+        severity: 'Maritime & Coastal Hazard',
+        victims: 9,
+        damageIndex: 71,
+        hazardType: 'Cat-1 Cyclonic Wave Surge & Breakwater Breach',
+        dispatched: false,
+        image: '/triage_flood.jpg',
+        aiAnalysis: {
+          confidence: '93.8%',
+          structureIntegrity: '68%',
+          waterDepthEst: '2.4 meters tidal surge',
+          detectedFeatures: [
+            { label: 'Mechanized Trawlers Severed from Pylons', conf: '95%' },
+            { label: 'Coast Guard Patrol Warning Siren Active', conf: '99%' }
+          ],
+          recommendedAction: 'Coast Guard Hovercraft Rescue Line + Move Fishermen inland to Royapuram Relief Camp',
+          priorityUnits: 'Indian Coast Guard Hovercraft'
+        }
+      }
+    ],
+    routes: {
+      origin: 'Velachery Gandhi Nagar Residential Lowlands',
+      destination: 'Anna University Guindy Engineering Relief Hub',
+      legacyRoute: {
+        name: 'Direct Saidapet Causeway Route (Anna Salai)',
+        distanceKm: '4.8 km',
+        estimatedMinutes: 'IMPASSABLE (RIVER BREACH)',
+        riskScore: 96,
+        status: 'SUBMERGED & CLOSED',
+        hazardBreach: 'Saidapet bridge road is submerged under 4.5 feet of turbulent Adyar river surge with 18-knot cross-current',
+        elevationProfile: 'Low-Lying Causeway (+2m MSL)',
+        coordinates: [
+          { x: 36, y: 67 },
+          { x: 42, y: 60 },
+          { x: 47, y: 54 },
+          { x: 42, y: 58 }
+        ],
+        geoPath: [
+          [12.9785, 80.2205],
+          [12.9980, 80.2215],
+          [13.0185, 80.2235],
+          [13.0125, 80.2355]
+        ]
+      },
+      aegisRoute: {
+        name: 'AegisGrid AI High-Elevation Corridor (via Guindy Flyover & Sardar Patel Rd)',
+        distanceKm: '6.4 km',
+        estimatedMinutes: '14 mins',
+        riskScore: 6,
+        status: '100% ELEVATED & SECURE',
+        hazardBreach: 'Zero river crossing; routes via Sardar Patel elevated road & Guindy Kathipara Grade Separator',
+        elevationProfile: 'Elevated Flyover (+18m to +28m MSL)',
+        coordinates: [
+          { x: 36, y: 67 },
+          { x: 34, y: 62 },
+          { x: 38, y: 56 },
+          { x: 42, y: 58 }
+        ],
+        geoPath: [
+          [12.9785, 80.2205],
+          [12.9920, 80.2090],
+          [13.0070, 80.2080],
+          [13.0090, 80.2210],
+          [13.0125, 80.2355]
+        ],
+        steps: [
+          { instruction: 'Depart Velachery via Inner Ring Road Elevated Ramp toward GST Road', alert: 'Do not enter 100-Ft Road underpass (Severely Inundated)', dist: '1.8 km' },
+          { instruction: 'Take the Kathipara Grade Separator Loop toward Guindy', alert: 'Verified 100% dry by TNSDMA Drone Mesh telemetry', dist: '2.4 km' },
+          { instruction: 'Merge onto Sardar Patel Road high-ridge boulevard', alert: 'Clear flow; dedicated emergency convoy corridor open', dist: '1.4 km' },
+          { instruction: 'Enter Anna University Main Campus North Gate directly to Shelter Reception', alert: 'Triage team standing by with dry intake and hot meals', dist: '0.8 km' }
+        ]
+      }
+    }
   }
 };
