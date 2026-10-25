@@ -228,25 +228,25 @@ export const SCENARIOS = {
     meshNodesActive: 2140,
     activeIncidentsCount: 64,
     civiliansEvacuated: 29800,
-    geoCenter: [47.6062, -122.3321],
+    geoCenter: [47.6080, -122.3350],
     zoom: 13,
     hazards: [
       { 
         id: 'h4', 
         x: 50, y: 50, r: 26, 
-        lat: 47.6080, lng: -122.3350, radiusMeters: 1200,
+        lat: 47.6050, lng: -122.3320, radiusMeters: 1100,
         type: 'collapse', label: 'Civic Center Collapse Grid', debrisDepth: '14 ft concrete rubble', aftershockRisk: '84% prob > M5.5' 
       },
       { 
         id: 'h5', 
         x: 22, y: 65, r: 16, 
-        lat: 47.5940, lng: -122.3240, radiusMeters: 800,
+        lat: 47.5960, lng: -122.3240, radiusMeters: 800,
         type: 'gas', label: 'Gas Pipeline Rupture & Vapor Cloud', danger: 'Explosive Atmosphere Threshold 78%' 
       },
       { 
         id: 'h6', 
         x: 75, y: 30, r: 18, 
-        lat: 47.6180, lng: -122.3180, radiusMeters: 900,
+        lat: 47.6190, lng: -122.3220, radiusMeters: 900,
         type: 'structural', label: 'Interstate Overpass Buckling', danger: 'Pylon 4 Shear Failure' 
       }
     ],
@@ -255,7 +255,7 @@ export const SCENARIOS = {
         id: 's4',
         name: 'Olympic Park Open Air Triage Compound',
         x: 85, y: 80,
-        lat: 47.6210, lng: -122.3520,
+        lat: 47.6215, lng: -122.3520,
         capacity: 6000,
         occupancy: 4200,
         power: 'Field Solar & Diesel 88%',
@@ -266,7 +266,7 @@ export const SCENARIOS = {
         id: 's5',
         name: 'Downtown Trauma Center Annex',
         x: 48, y: 52,
-        lat: 47.6045, lng: -122.3290,
+        lat: 47.6060, lng: -122.3210,
         capacity: 1200,
         occupancy: 1190,
         power: 'Seismic Generator 32%',
@@ -277,7 +277,7 @@ export const SCENARIOS = {
         id: 's6',
         name: 'Westside Stadium Field Hospital',
         x: 18, y: 25,
-        lat: 47.5920, lng: -122.3380,
+        lat: 47.5950, lng: -122.3310,
         capacity: 4000,
         occupancy: 1900,
         power: 'Aux Generator 96%',
@@ -286,9 +286,9 @@ export const SCENARIOS = {
       }
     ],
     units: [
-      { id: 'u5', callsign: 'USAR Heavy Dog Squad-3', type: 'k9_rescue', x: 46, y: 48, lat: 47.6070, lng: -122.3330, status: 'Active Search', target: 'Commercial Plaza Core' },
-      { id: 'u6', callsign: 'Acoustic Sensor Drone-8', type: 'drone', x: 52, y: 46, lat: 47.6095, lng: -122.3315, status: 'Scanning Voids', target: 'Pancake Collapse Void 4' },
-      { id: 'u7', callsign: 'Extrication Crane 12', type: 'ground_heavy', x: 62, y: 60, lat: 47.6140, lng: -122.3260, status: 'In Transit', target: 'Downtown Nexus' }
+      { id: 'u5', callsign: 'USAR Heavy Dog Squad-3', type: 'k9_rescue', x: 46, y: 48, lat: 47.6090, lng: -122.3370, status: 'Active Search', target: 'Commercial Plaza Core' },
+      { id: 'u6', callsign: 'Acoustic Sensor Drone-8', type: 'drone', x: 52, y: 46, lat: 47.6020, lng: -122.3300, status: 'Scanning Voids', target: 'Pancake Collapse Void 4' },
+      { id: 'u7', callsign: 'Extrication Crane 12', type: 'ground_heavy', x: 62, y: 60, lat: 47.6140, lng: -122.3250, status: 'In Transit', target: 'Downtown Nexus' }
     ],
     incidents: [
       {
@@ -296,8 +296,8 @@ export const SCENARIOS = {
         title: '7-Story Concrete Commercial Center Pancake Collapse',
         location: 'Grand Ave & Market St',
         coords: { x: 47, y: 49 },
-        lat: 47.6075,
-        lng: -122.3340,
+        lat: 47.6040,
+        lng: -122.3330,
         triageCode: 'RED',
         severity: 'Mass Casualty Extrication',
         victims: 34,
@@ -324,8 +324,8 @@ export const SCENARIOS = {
         title: 'Overpass Concrete Pylon Delamination with Suspended Bus',
         location: 'Interstate 80 Overpass Mile 11',
         coords: { x: 74, y: 32 },
-        lat: 47.6185,
-        lng: -122.3210,
+        lat: 47.6180,
+        lng: -122.3270,
         triageCode: 'RED',
         severity: 'Immediate Life Threat',
         victims: 22,
@@ -364,10 +364,10 @@ export const SCENARIOS = {
           { x: 85, y: 80 }
         ],
         geoPath: [
-          [47.6075, -122.3340],
-          [47.6110, -122.3320],
+          [47.6040, -122.3330],
+          [47.6090, -122.3300],
           [47.6160, -122.3420],
-          [47.6210, -122.3520]
+          [47.6215, -122.3520]
         ]
       },
       aegisRoute: {
@@ -386,11 +386,10 @@ export const SCENARIOS = {
           { x: 85, y: 80 }
         ],
         geoPath: [
-          [47.6075, -122.3340],
-          [47.6030, -122.3420],
-          [47.6100, -122.3560],
-          [47.6180, -122.3580],
-          [47.6210, -122.3520]
+          [47.6040, -122.3330],
+          [47.6010, -122.3450],
+          [47.6120, -122.3580],
+          [47.6215, -122.3520]
         ],
         steps: [
           { instruction: 'Exit Grand Ave via open-air West Plaza esplanade', alert: 'Clear of masonry overhangs; keep 20m from glass towers', dist: '0.8 km' },

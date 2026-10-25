@@ -94,37 +94,61 @@ export default function TacticalMap({
     };
   }, []);
 
-  // 2. Manage Basemap Tiles (CartoDB Positron / Dark Matter / Esri Satellite)
+  const referenceLayerRef = useRef(null);
+
+  // 2. Manage Basemap Tiles (Esri Canvas Dark/Light / Satellite / OpenStreetMap - 100% Free, No API Key Required)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
     if (tileLayerRef.current) {
       map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = null;
+    }
+    if (referenceLayerRef.current) {
+      map.removeLayer(referenceLayerRef.current);
+      referenceLayerRef.current = null;
     }
 
     let tileUrl = '';
+    let refUrl = '';
     let attribution = '';
+    let maxZoom = 19;
 
     if (basemapType === 'satellite') {
       tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      refUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
       attribution = 'Tiles &copy; Esri &mdash; Earthstar Geographics';
+    } else if (basemapType === 'osm') {
+      tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
     } else {
+      // Tactical Canvas (Dark or Light)
       if (isLight) {
-        tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+        refUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}';
+        attribution = 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ';
       } else {
-        tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+        refUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}';
+        attribution = 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ';
       }
-      attribution = '&copy; OpenStreetMap contributors &copy; CARTO';
     }
 
     const tileLayer = L.tileLayer(tileUrl, {
-      subdomains: 'abcd',
-      maxZoom: 19,
+      maxZoom: maxZoom,
       attribution: attribution
     }).addTo(map);
 
     tileLayerRef.current = tileLayer;
+
+    // Add labels & street names reference overlay if available
+    if (refUrl) {
+      const refLayer = L.tileLayer(refUrl, {
+        maxZoom: maxZoom
+      }).addTo(map);
+      referenceLayerRef.current = refLayer;
+    }
   }, [basemapType, isLight]);
 
   // 3. Update Map Center & View when Scenario Changes
@@ -493,25 +517,80 @@ export default function TacticalMap({
           pointerEvents: 'auto',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          {/* Basemap Toggle (Vector vs Satellite) */}
-          <button
-            onClick={() => {
-              const next = basemapType === 'vector' ? 'satellite' : 'vector';
-              setBasemapType(next);
-              tacticalAudio.playTacticalBeep(1200, 0.04, 0.02);
-            }}
-            className="btn btn-xs"
-            style={{
-              backgroundColor: basemapType === 'satellite' ? 'var(--accent)' : 'var(--surface-secondary)',
-              color: basemapType === 'satellite' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              fontWeight: 600,
-              gap: '4px'
-            }}
-            title="Toggle between Real Satellite Imagery & Vector Carto Basemap"
-          >
-            {basemapType === 'satellite' ? <Satellite size={13} /> : <Globe2 size={13} />}
-            <span>{basemapType === 'satellite' ? 'Satellite View' : 'Vector Map'}</span>
-          </button>
+          {/* Basemap Switcher (Canvas / Satellite / Streets) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '2px',
+            backgroundColor: 'var(--surface-secondary)',
+            padding: '2px',
+            borderRadius: 'var(--radius-xs)',
+            border: '1px solid var(--border-subtle)'
+          }}>
+            <button
+              onClick={() => {
+                setBasemapType('vector');
+                tacticalAudio.playTacticalBeep(1200, 0.04, 0.02);
+              }}
+              className="btn btn-xs"
+              style={{
+                backgroundColor: basemapType === 'vector' ? 'var(--accent)' : 'transparent',
+                color: basemapType === 'vector' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                fontWeight: 600,
+                fontSize: '11px',
+                padding: '2px 7px',
+                gap: '4px',
+                border: 'none',
+                height: '24px'
+              }}
+              title="Esri World Canvas Basemap (Theme Adaptive Grayscale)"
+            >
+              <Globe2 size={12} />
+              <span>Canvas</span>
+            </button>
+            <button
+              onClick={() => {
+                setBasemapType('satellite');
+                tacticalAudio.playTacticalBeep(1200, 0.04, 0.02);
+              }}
+              className="btn btn-xs"
+              style={{
+                backgroundColor: basemapType === 'satellite' ? 'var(--accent)' : 'transparent',
+                color: basemapType === 'satellite' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                fontWeight: 600,
+                fontSize: '11px',
+                padding: '2px 7px',
+                gap: '4px',
+                border: 'none',
+                height: '24px'
+              }}
+              title="Esri World Imagery (High-Resolution Satellite)"
+            >
+              <Satellite size={12} />
+              <span>Satellite</span>
+            </button>
+            <button
+              onClick={() => {
+                setBasemapType('osm');
+                tacticalAudio.playTacticalBeep(1200, 0.04, 0.02);
+              }}
+              className="btn btn-xs"
+              style={{
+                backgroundColor: basemapType === 'osm' ? 'var(--accent)' : 'transparent',
+                color: basemapType === 'osm' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                fontWeight: 600,
+                fontSize: '11px',
+                padding: '2px 7px',
+                gap: '4px',
+                border: 'none',
+                height: '24px'
+              }}
+              title="OpenStreetMap Standard Street Layer"
+            >
+              <Navigation size={12} />
+              <span>Streets</span>
+            </button>
+          </div>
 
           <span style={{ color: 'var(--border-medium)' }}>|</span>
 
@@ -611,7 +690,7 @@ export default function TacticalMap({
       }}>
         <span>LAT: {mouseCoords.lat.toFixed(4)}° N</span>
         <span>LON: {mouseCoords.lng.toFixed(4)}° W</span>
-        <span>MAP TILES: {basemapType === 'satellite' ? 'ESRI WORLD IMAGERY' : isLight ? 'CARTO POSITRON' : 'CARTO DARK MATTER'}</span>
+        <span>MAP TILES: {basemapType === 'satellite' ? 'ESRI WORLD IMAGERY' : basemapType === 'osm' ? 'OPENSTREETMAP' : isLight ? 'ESRI LIGHT CANVAS' : 'ESRI DARK CANVAS'}</span>
       </div>
 
       {/* Bottom Right Map Legend */}
