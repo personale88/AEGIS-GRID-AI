@@ -78,6 +78,9 @@ export function OperationsProvider({ children }) {
   // Civilian SOS modal state
   const [isSOSModalOpen, setIsSOSModalOpen] = useState(false);
 
+  // Guided Voiceover Tour modal state
+  const [isTourOpen, setIsTourOpen] = useState(false);
+
   // Notification / Toasts system
   const [toasts, setToasts] = useState([]);
   const [notifications, setNotifications] = useState([
@@ -436,6 +439,8 @@ export function OperationsProvider({ children }) {
         setIsMuted,
         isSOSModalOpen,
         setIsSOSModalOpen,
+        isTourOpen,
+        setIsTourOpen,
         toasts,
         addToast,
         notifications,

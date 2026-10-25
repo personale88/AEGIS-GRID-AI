@@ -15,7 +15,8 @@ import {
   VolumeX,
   RefreshCw,
   ExternalLink,
-  Crosshair
+  Crosshair,
+  Headphones
 } from 'lucide-react';
 import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
@@ -39,7 +40,9 @@ export default function TopNav({ onOpenMobileSidebar }) {
     responders,
     userLiveLocation,
     isDetectingLocation,
-    detectLiveLocation
+    detectLiveLocation,
+    isTourOpen,
+    setIsTourOpen
   } = useOperations();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -248,6 +251,26 @@ export default function TopNav({ onOpenMobileSidebar }) {
 
       {/* RIGHT: Live Data Status, Theme Toggle, Notifications, User */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Guided Voiceover Tour Button */}
+        <button
+          onClick={() => setIsTourOpen(true)}
+          className="btn btn-outline btn-sm"
+          style={{
+            padding: '5px 11px',
+            gap: '6px',
+            fontSize: '11px',
+            fontWeight: 700,
+            borderColor: '#22D3EE',
+            color: '#22D3EE',
+            backgroundColor: 'rgba(34, 211, 238, 0.08)',
+            boxShadow: '0 0 12px rgba(34, 211, 238, 0.15)'
+          }}
+          title="Play automated guided video tour with real voiceover narration"
+          id="btn-voiceover-tour"
+        >
+          <Headphones size={14} color="#22D3EE" />
+          <span>Play Voiceover Tour</span>
+        </button>
         {/* Connection Status: DEMO MODE / SYNTHETIC DATA as strictly required */}
         <div style={{
           display: 'flex',

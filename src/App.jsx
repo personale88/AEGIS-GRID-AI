@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 import IncidentDetailPanel from './components/IncidentDetailPanel';
 import CivilianSOSModal from './components/CivilianSOSModal';
+import VoiceoverTourModal from './components/VoiceoverTourModal';
 import ImpactBar from './components/ImpactBar';
 
 // Views
@@ -26,7 +27,7 @@ import { AlertTriangle, CheckCircle2, Bell } from 'lucide-react';
 import './App.css';
 
 function MainAppShell() {
-  const { activeNav, isSidebarCollapsed, toasts } = useOperations();
+  const { activeNav, isSidebarCollapsed, toasts, isTourOpen, setIsTourOpen } = useOperations();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
@@ -69,6 +70,9 @@ function MainAppShell() {
 
       {/* Civilian SOS Modal */}
       <CivilianSOSModal />
+
+      {/* Guided Voiceover Tour Modal with Spoken Audio */}
+      <VoiceoverTourModal isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
 
       {/* Real-time Toast Notifications */}
       <div className="toast-container">
