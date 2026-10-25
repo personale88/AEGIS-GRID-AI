@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
 import { 
   Layers, 
   ZoomIn, 
   ZoomOut, 
   Maximize2, 
+  Minimize2, 
   Crosshair, 
-  Filter, 
-  Radio, 
-  MapPin, 
-  AlertTriangle, 
-  Users, 
-  Home, 
-  Navigation,
+  Globe2,
+  Satellite,
   Compass,
-  CheckCircle2,
-  Minimize2
+  MapPin,
+  AlertTriangle,
+  Users,
+  Home,
+  Navigation
 } from 'lucide-react';
 import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
@@ -36,50 +36,384 @@ export default function TacticalMap({
     routes 
   } = useOperations();
 
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const layersGroupRef = useRef({});
+
+  const [basemapType, setBasemapType] = useState('vector'); // 'vector' | 'satellite'
   const [activeLayers, setActiveLayers] = useState({
     hazards: true,
     shelters: true,
     units: true,
     incidents: true,
-    evacRoutes: true,
-    radar: true
+    evacRoutes: true
   });
   const [filterSeverity, setFilterSeverity] = useState('ALL');
-  const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(false);
-  const [selectedEntity, setSelectedEntity] = useState(null);
+  const [mouseCoords, setMouseCoords] = useState({ lat: 37.7749, lng: -122.4194 });
 
-  const toggleLayer = (layerKey) => {
+  const isLight = theme === 'light';
+
+  // 1. Initialize Leaflet Map
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    if (!mapInstanceRef.current) {
+      const center = scenarioData.geoCenter || [37.7749, -122.4194];
+      const zoom = scenarioData.zoom || 13;
+
+      const map = L.map(mapContainerRef.current, {
+        center: center,
+        zoom: zoom,
+        zoomControl: false,
+        attributionControl: false
+      });
+
+      // Track cursor coordinates
+      map.on('mousemove', (e) => {
+        setMouseCoords({
+          lat: e.latlng.lat,
+          lng: e.latlng.lng
+        });
+      });
+
+      mapInstanceRef.current = map;
+
+      // Create feature layer groups
+      layersGroupRef.current = {
+        hazards: L.layerGroup().addTo(map),
+        shelters: L.layerGroup().addTo(map),
+        units: L.layerGroup().addTo(map),
+        incidents: L.layerGroup().addTo(map),
+        evacRoutes: L.layerGroup().addTo(map)
+      };
+    }
+
+    return () => {
+      // Keep map alive during tab transitions
+    };
+  }, []);
+
+  // 2. Manage Basemap Tiles (CartoDB Positron / Dark Matter / Esri Satellite)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    let tileUrl = '';
+    let attribution = '';
+
+    if (basemapType === 'satellite') {
+      tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      attribution = 'Tiles &copy; Esri &mdash; Earthstar Geographics';
+    } else {
+      if (isLight) {
+        tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+      } else {
+        tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      }
+      attribution = '&copy; OpenStreetMap contributors &copy; CARTO';
+    }
+
+    const tileLayer = L.tileLayer(tileUrl, {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: attribution
+    }).addTo(map);
+
+    tileLayerRef.current = tileLayer;
+  }, [basemapType, isLight]);
+
+  // 3. Update Map Center & View when Scenario Changes
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !scenarioData.geoCenter) return;
+
+    map.flyTo(scenarioData.geoCenter, scenarioData.zoom || 13, {
+      duration: 1.2
+    });
+  }, [scenarioData.id]);
+
+  // 4. Center / Fly to Selected Incident
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !selectedIncidentId) return;
+
+    const inc = incidents.find(i => i.id === selectedIncidentId);
+    if (inc && inc.lat && inc.lng) {
+      map.panTo([inc.lat, inc.lng], {
+        animate: true,
+        duration: 0.6
+      });
+    }
+  }, [selectedIncidentId, incidents]);
+
+  // 5. Render Real Geospatial Overlay Layers
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !layersGroupRef.current.incidents) return;
+
+    const { hazards: hazardGroup, shelters: shelterGroup, units: unitGroup, incidents: incidentGroup, evacRoutes: routeGroup } = layersGroupRef.current;
+
+    // A. HAZARDS LAYER
+    hazardGroup.clearLayers();
+    if (activeLayers.hazards) {
+      hazards.forEach(h => {
+        if (!h.lat || !h.lng) return;
+        const isFire = h.type === 'fire' || h.type === 'smoke';
+        const color = isFire ? '#DC2626' : '#0891B2';
+        const fillCol = isFire ? '#FF4D5A' : '#22D3EE';
+
+        const circle = L.circle([h.lat, h.lng], {
+          radius: h.radiusMeters || 1000,
+          color: color,
+          weight: 2,
+          dashArray: '5, 5',
+          fillColor: fillCol,
+          fillOpacity: isLight ? 0.22 : 0.28
+        });
+
+        circle.bindTooltip(`<strong>⚠️ ${h.label.toUpperCase()}</strong><br/>${h.depth ? 'Depth: ' + h.depth : h.danger || ''}`, {
+          direction: 'top',
+          className: 'tactical-map-tooltip'
+        });
+
+        hazardGroup.addLayer(circle);
+      });
+    }
+
+    // B. EVACUATION ROUTES LAYER
+    routeGroup.clearLayers();
+    if (activeLayers.evacRoutes && routes) {
+      // Legacy Blocked Route (Red Dashed)
+      if (routes.legacyRoute?.geoPath) {
+        const legacyLine = L.polyline(routes.legacyRoute.geoPath, {
+          color: '#DC2626',
+          weight: 4,
+          dashArray: '6, 8',
+          opacity: 0.85
+        });
+        legacyLine.bindTooltip(`<strong>🛑 ${routes.legacyRoute.name}</strong><br/>FATAL HAZARD: ${routes.legacyRoute.hazardBreach}`, {
+          sticky: true
+        });
+        routeGroup.addLayer(legacyLine);
+      }
+
+      // Aegis Safe Route (Emerald Glowing Line)
+      if (routes.aegisRoute?.geoPath) {
+        const safeLine = L.polyline(routes.aegisRoute.geoPath, {
+          color: '#059669',
+          weight: 5,
+          opacity: 0.95
+        });
+        safeLine.bindTooltip(`<strong>🛡️ ${routes.aegisRoute.name}</strong><br/>100% SECURE & CLEARED`, {
+          sticky: true
+        });
+        routeGroup.addLayer(safeLine);
+
+        // Waypoints
+        routes.aegisRoute.geoPath.forEach((pt, idx) => {
+          const wpMarker = L.circleMarker(pt, {
+            radius: 5,
+            fillColor: '#059669',
+            color: '#FFFFFF',
+            weight: 2,
+            fillOpacity: 1
+          });
+          routeGroup.addLayer(wpMarker);
+        });
+      }
+    }
+
+    // C. SHELTERS LAYER
+    shelterGroup.clearLayers();
+    if (activeLayers.shelters) {
+      shelters.forEach(s => {
+        if (!s.lat || !s.lng) return;
+
+        const shelterIcon = L.divIcon({
+          className: 'custom-shelter-marker',
+          html: `
+            <div style="
+              width: 28px; 
+              height: 28px; 
+              border-radius: 6px; 
+              background: #059669; 
+              color: white; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              border: 2px solid white;
+              font-size: 14px;
+              font-weight: bold;
+            ">
+              +
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+
+        const marker = L.marker([s.lat, s.lng], { icon: shelterIcon });
+        marker.bindTooltip(`<strong>🏥 ${s.name}</strong><br/>Occupancy: ${s.occupancy}/${s.capacity} (${Math.round((s.occupancy/s.capacity)*100)}%)`, {
+          direction: 'top'
+        });
+        shelterGroup.addLayer(marker);
+      });
+    }
+
+    // D. RESPONDER FLEET UNITS
+    unitGroup.clearLayers();
+    if (activeLayers.units) {
+      responders.forEach(u => {
+        if (!u.lat || !u.lng) return;
+
+        const unitIcon = L.divIcon({
+          className: 'custom-responder-marker',
+          html: `
+            <div style="
+              width: 26px; 
+              height: 26px; 
+              border-radius: 50%; 
+              background: #2563EB; 
+              color: white; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              border: 2px solid white;
+              font-size: 11px;
+            ">
+              ▲
+            </div>
+          `,
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        });
+
+        const marker = L.marker([u.lat, u.lng], { icon: unitIcon });
+        marker.bindTooltip(`<strong>${u.callsign}</strong><br/>Status: ${u.status}<br/>Target: ${u.target}`, {
+          direction: 'top'
+        });
+        unitGroup.addLayer(marker);
+      });
+    }
+
+    // E. INCIDENTS LAYER
+    incidentGroup.clearLayers();
+    if (activeLayers.incidents) {
+      incidents.forEach(inc => {
+        if (!inc.lat || !inc.lng) return;
+        if (filterSeverity !== 'ALL' && inc.triageCode !== filterSeverity) return;
+
+        const isSelected = selectedIncidentId === inc.id;
+        const isRed = inc.triageCode === 'RED';
+        const color = isRed ? '#DC2626' : '#D97706';
+
+        const incidentIcon = L.divIcon({
+          className: 'custom-incident-marker',
+          html: `
+            <div style="
+              position: relative;
+              width: 32px;
+              height: 32px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+            ">
+              ${isSelected ? `
+                <div style="
+                  position: absolute;
+                  inset: -4px;
+                  border-radius: 50%;
+                  border: 2px dashed ${color};
+                  animation: pulse 1.5s infinite;
+                "></div>
+              ` : ''}
+              <div style="
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                background: ${color};
+                border: 2px solid #FFFFFF;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #FFFFFF;
+                font-weight: 800;
+                font-size: 11px;
+                font-family: 'JetBrains Mono', monospace;
+              ">
+                !
+              </div>
+              <div style="
+                position: absolute;
+                bottom: -16px;
+                background: ${color};
+                color: #fff;
+                padding: 1px 4px;
+                border-radius: 3px;
+                font-size: 9px;
+                font-weight: 700;
+                white-space: nowrap;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+              ">
+                ${inc.id.toUpperCase()}
+              </div>
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([inc.lat, inc.lng], { icon: incidentIcon });
+
+        marker.on('click', () => {
+          selectIncident(inc.id, true);
+        });
+
+        marker.bindTooltip(`
+          <strong>${inc.id.toUpperCase()}: ${inc.title}</strong><br/>
+          Triage: ${inc.triageCode} | Victims: ${inc.victims} trapped<br/>
+          <em>Click to inspect and dispatch</em>
+        `, {
+          direction: 'top',
+          offset: [0, -14]
+        });
+
+        incidentGroup.addLayer(marker);
+      });
+    }
+  }, [
+    incidents, 
+    selectedIncidentId, 
+    activeLayers, 
+    filterSeverity, 
+    hazards, 
+    shelters, 
+    responders, 
+    routes, 
+    isLight
+  ]);
+
+  const toggleLayer = (key) => {
     tacticalAudio.playTacticalBeep(1000, 0.03, 0.02);
-    setActiveLayers(prev => ({ ...prev, [layerKey]: !prev[layerKey] }));
-  };
-
-  const filteredIncidents = incidents.filter(inc => {
-    if (filterSeverity === 'ALL') return true;
-    return inc.triageCode === filterSeverity;
-  });
-
-  const handleIncidentClick = (inc) => {
-    selectIncident(inc.id, true);
-    setSelectedEntity({ type: 'incident', data: inc });
-  };
-
-  const handleShelterClick = (s) => {
-    tacticalAudio.playTacticalBeep(1200, 0.05, 0.03);
-    setSelectedEntity({ type: 'shelter', data: s });
-  };
-
-  const handleResponderClick = (u) => {
-    tacticalAudio.playTacticalBeep(1100, 0.05, 0.03);
-    setSelectedEntity({ type: 'responder', data: u });
+    setActiveLayers(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const resetView = () => {
-    setZoomLevel(1);
-    tacticalAudio.playTacticalBeep(900, 0.04, 0.02);
+    const map = mapInstanceRef.current;
+    if (map && scenarioData.geoCenter) {
+      map.flyTo(scenarioData.geoCenter, scenarioData.zoom || 13, { duration: 0.8 });
+      tacticalAudio.playTacticalBeep(900, 0.04, 0.02);
+    }
   };
-
-  const isLight = theme === 'light';
 
   return (
     <div className="card" style={{
@@ -91,21 +425,21 @@ export default function TacticalMap({
       backgroundColor: 'var(--surface-primary)',
       border: '1px solid var(--border-subtle)'
     }}>
-      {/* Top Map Action Bar */}
+      {/* Top Floating Controls Bar */}
       <div style={{
         position: 'absolute',
         top: 12,
         left: 14,
         right: 14,
-        zIndex: 20,
+        zIndex: 1000,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         pointerEvents: 'none'
       }}>
-        {/* Layer Controls Pill */}
+        {/* Layer Toggles Pill */}
         <div style={{
-          backgroundColor: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(17, 24, 39, 0.92)',
+          backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(17, 24, 39, 0.94)',
           backdropFilter: 'blur(8px)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-sm)',
@@ -116,24 +450,17 @@ export default function TacticalMap({
           pointerEvents: 'auto',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <button
-            onClick={() => setIsLayerPanelOpen(prev => !prev)}
-            className="btn btn-ghost btn-xs"
-            style={{ fontWeight: 600, gap: '5px' }}
-          >
-            <Layers size={13} color="var(--accent)" />
-            <span>LAYERS</span>
-          </button>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Layers size={13} />
+            <span>GIS LAYERS:</span>
+          </span>
 
-          <span style={{ color: 'var(--border-medium)' }}>|</span>
-
-          {/* Quick Layer Toggles */}
           {[
             { key: 'hazards', label: 'Hazards', color: 'var(--critical)' },
             { key: 'incidents', label: 'Incidents', color: 'var(--warning)' },
             { key: 'shelters', label: 'Shelters', color: 'var(--success)' },
-            { key: 'units', label: 'Fleet', color: 'var(--accent)' },
-            { key: 'evacRoutes', label: 'Routes', color: 'var(--info)' }
+            { key: 'units', label: 'Fleet', color: 'var(--info)' },
+            { key: 'evacRoutes', label: 'Routes', color: '#10B981' }
           ].map(l => (
             <button
               key={l.key}
@@ -153,9 +480,9 @@ export default function TacticalMap({
           ))}
         </div>
 
-        {/* Severity Filter & Map Zoom Tools */}
+        {/* Basemap & Map Tools */}
         <div style={{
-          backgroundColor: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(17, 24, 39, 0.92)',
+          backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(17, 24, 39, 0.94)',
           backdropFilter: 'blur(8px)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-sm)',
@@ -166,7 +493,30 @@ export default function TacticalMap({
           pointerEvents: 'auto',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>PRIORITY:</span>
+          {/* Basemap Toggle (Vector vs Satellite) */}
+          <button
+            onClick={() => {
+              const next = basemapType === 'vector' ? 'satellite' : 'vector';
+              setBasemapType(next);
+              tacticalAudio.playTacticalBeep(1200, 0.04, 0.02);
+            }}
+            className="btn btn-xs"
+            style={{
+              backgroundColor: basemapType === 'satellite' ? 'var(--accent)' : 'var(--surface-secondary)',
+              color: basemapType === 'satellite' ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+              fontWeight: 600,
+              gap: '4px'
+            }}
+            title="Toggle between Real Satellite Imagery & Vector Carto Basemap"
+          >
+            {basemapType === 'satellite' ? <Satellite size={13} /> : <Globe2 size={13} />}
+            <span>{basemapType === 'satellite' ? 'Satellite View' : 'Vector Map'}</span>
+          </button>
+
+          <span style={{ color: 'var(--border-medium)' }}>|</span>
+
+          {/* Severity Filters */}
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>TRIAGE:</span>
           {['ALL', 'RED', 'YELLOW'].map(f => (
             <button
               key={f}
@@ -189,286 +539,115 @@ export default function TacticalMap({
 
           <span style={{ color: 'var(--border-medium)' }}>|</span>
 
-          {/* Zoom controls */}
-          <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, 2.0))} className="btn btn-ghost btn-xs" style={{ padding: '3px' }} title="Zoom In">
+          {/* Zoom & Fit */}
+          <button 
+            onClick={() => mapInstanceRef.current?.zoomIn()} 
+            className="btn btn-ghost btn-xs" 
+            style={{ padding: '3px' }} 
+            title="Zoom In"
+          >
             <ZoomIn size={14} />
           </button>
-          <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, 0.8))} className="btn btn-ghost btn-xs" style={{ padding: '3px' }} title="Zoom Out">
+
+          <button 
+            onClick={() => mapInstanceRef.current?.zoomOut()} 
+            className="btn btn-ghost btn-xs" 
+            style={{ padding: '3px' }} 
+            title="Zoom Out"
+          >
             <ZoomOut size={14} />
           </button>
-          <button onClick={resetView} className="btn btn-ghost btn-xs" style={{ padding: '3px' }} title="Fit to Region">
+
+          <button 
+            onClick={resetView} 
+            className="btn btn-ghost btn-xs" 
+            style={{ padding: '3px' }} 
+            title="Center Operational Region"
+          >
             <Crosshair size={14} />
           </button>
+
           {onToggleFullscreen && (
-            <button onClick={onToggleFullscreen} className="btn btn-ghost btn-xs" style={{ padding: '3px' }} title="Toggle Fullscreen">
+            <button 
+              onClick={onToggleFullscreen} 
+              className="btn btn-ghost btn-xs" 
+              style={{ padding: '3px' }} 
+              title="Toggle Fullscreen"
+            >
               {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             </button>
           )}
         </div>
       </div>
 
-      {/* SVG Canvas Stage */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', backgroundColor: 'var(--bg-main)' }}>
-        <svg
-          viewBox="0 0 100 100"
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'block',
-            transform: `scale(${zoomLevel})`,
-            transition: 'transform 0.2s ease-out'
-          }}
-          preserveAspectRatio="none"
-        >
-          <defs>
-            {/* Gradients tailored for Light and Dark themes */}
-            <radialGradient id="floodHazardGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={isLight ? "rgba(37, 99, 235, 0.25)" : "rgba(37, 99, 235, 0.45)"} />
-              <stop offset="70%" stopColor={isLight ? "rgba(8, 145, 178, 0.12)" : "rgba(34, 211, 238, 0.25)"} />
-              <stop offset="100%" stopColor="transparent" />
-            </radialGradient>
+      {/* Real Leaflet Map Container */}
+      <div 
+        ref={mapContainerRef} 
+        style={{ 
+          flex: 1, 
+          width: '100%', 
+          height: '100%',
+          backgroundColor: isLight ? '#E5E7EB' : '#0B132B'
+        }} 
+      />
 
-            <radialGradient id="fireHazardGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={isLight ? "rgba(220, 38, 38, 0.3)" : "rgba(255, 77, 90, 0.55)"} />
-              <stop offset="70%" stopColor={isLight ? "rgba(217, 119, 6, 0.15)" : "rgba(251, 191, 36, 0.25)"} />
-              <stop offset="100%" stopColor="transparent" />
-            </radialGradient>
+      {/* Bottom Coordinates & Real-World GIS Watermark */}
+      <div style={{
+        position: 'absolute',
+        bottom: 8,
+        left: 12,
+        zIndex: 1000,
+        fontSize: '11px',
+        color: isLight ? '#1F2937' : '#E2E8F0',
+        backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(15, 23, 42, 0.9)',
+        backdropFilter: 'blur(6px)',
+        padding: '3px 8px',
+        borderRadius: 'var(--radius-xs)',
+        border: '1px solid var(--border-subtle)',
+        display: 'flex',
+        gap: '12px',
+        fontFamily: 'var(--font-mono)',
+        pointerEvents: 'none'
+      }}>
+        <span>LAT: {mouseCoords.lat.toFixed(4)}° N</span>
+        <span>LON: {mouseCoords.lng.toFixed(4)}° W</span>
+        <span>MAP TILES: {basemapType === 'satellite' ? 'ESRI WORLD IMAGERY' : isLight ? 'CARTO POSITRON' : 'CARTO DARK MATTER'}</span>
+      </div>
 
-            <radialGradient id="radarBeamGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={isLight ? "rgba(8, 145, 178, 0.18)" : "rgba(34, 211, 238, 0.2)"} />
-              <stop offset="80%" stopColor="transparent" />
-            </radialGradient>
-          </defs>
-
-          {/* Cartographic Land & River Background */}
-          <rect width="100" height="100" fill={isLight ? "var(--map-land)" : "#0c1220"} />
-          
-          {/* Simulated River / Coastline */}
-          <path
-            d="M 0,28 Q 28,38 48,26 T 85,42 T 100,36 L 100,100 L 0,100 Z"
-            fill={isLight ? "var(--map-water)" : "#080E1C"}
-            stroke={isLight ? "var(--map-land-stroke)" : "#1B2A47"}
-            strokeWidth="0.3"
-          />
-
-          {/* Subtle Grid Lines */}
-          <g stroke="var(--map-grid)" strokeWidth="0.15">
-            {[10, 20, 30, 40, 50, 60, 70, 80, 90].map(c => (
-              <React.Fragment key={c}>
-                <line x1={c} y1="0" x2={c} y2="100" strokeDasharray="1, 3" />
-                <line x1="0" y1={c} x2="100" y2={c} strokeDasharray="1, 3" />
-              </React.Fragment>
-            ))}
-          </g>
-
-          {/* Radar Sweep Animation (Restrained & smooth) */}
-          {activeLayers.radar && (
-            <g className="radar-sweep-beam">
-              <path d="M 50 50 L 50 0 A 50 50 0 0 1 100 50 Z" fill="url(#radarBeamGrad)" opacity={isLight ? 0.6 : 0.8} />
-              <line x1="50" y1="50" x2="100" y2="50" stroke="var(--accent)" strokeWidth="0.25" opacity="0.6" />
-            </g>
-          )}
-
-          {/* HAZARDS LAYER */}
-          {activeLayers.hazards && hazards.map(h => {
-            const isFire = h.type === 'fire' || h.type === 'smoke';
-            return (
-              <g key={h.id}>
-                <circle
-                  cx={h.x}
-                  cy={h.y}
-                  r={h.r}
-                  fill={isFire ? "url(#fireHazardGrad)" : "url(#floodHazardGrad)"}
-                  stroke={isFire ? "var(--critical)" : "var(--accent)"}
-                  strokeWidth="0.25"
-                  strokeDasharray="1.5, 1"
-                />
-                <text
-                  x={h.x}
-                  y={h.y - h.r - 1.2}
-                  fill={isFire ? "var(--critical)" : "var(--accent)"}
-                  fontSize="2"
-                  textAnchor="middle"
-                  fontFamily="Inter"
-                  fontWeight="600"
-                >
-                  {h.label.toUpperCase()}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* EVACUATION CORRIDORS */}
-          {activeLayers.evacRoutes && routes && (
-            <g>
-              {/* Legacy Blocked Route */}
-              <polyline
-                points={routes.legacyRoute.coordinates.map(c => `${c.x},${c.y}`).join(' ')}
-                fill="none"
-                stroke="var(--map-route-danger)"
-                strokeWidth="0.55"
-                strokeDasharray="1.5, 1.5"
-                opacity="0.8"
-              />
-
-              {/* Dynamic Aegis Safe Route */}
-              <polyline
-                points={routes.aegisRoute.coordinates.map(c => `${c.x},${c.y}`).join(' ')}
-                fill="none"
-                stroke="var(--map-route-safe)"
-                strokeWidth="0.9"
-                opacity="0.95"
-              />
-
-              {/* Safe Waypoints */}
-              {routes.aegisRoute.coordinates.map((pt, i) => (
-                <circle
-                  key={i}
-                  cx={pt.x}
-                  cy={pt.y}
-                  r="1.1"
-                  fill="var(--map-route-safe)"
-                  stroke="#fff"
-                  strokeWidth="0.3"
-                />
-              ))}
-            </g>
-          )}
-
-          {/* SHELTERS */}
-          {activeLayers.shelters && shelters.map(s => (
-            <g
-              key={s.id}
-              onClick={() => handleShelterClick(s)}
-              style={{ cursor: 'pointer' }}
-            >
-              <circle cx={s.x} cy={s.y} r="2.8" fill={isLight ? "#ECFDF5" : "rgba(52, 211, 153, 0.2)"} stroke="var(--success)" strokeWidth="0.4" />
-              <rect x={s.x - 1} y={s.y - 1} width="2" height="2" fill="var(--success)" rx="0.3" />
-              <text x={s.x} y={s.y + 4.4} fill={isLight ? "#065F46" : "#A7F3D0"} fontSize="1.8" textAnchor="middle" fontFamily="Inter" fontWeight="600">
-                {s.name}
-              </text>
-            </g>
-          ))}
-
-          {/* RESPONDER UNITS */}
-          {activeLayers.units && responders.map(u => (
-            <g
-              key={u.id}
-              onClick={() => handleResponderClick(u)}
-              style={{ cursor: 'pointer' }}
-            >
-              <circle cx={u.x} cy={u.y} r="2.4" fill={isLight ? "#EFF6FF" : "rgba(96, 165, 250, 0.2)"} stroke="var(--info)" strokeWidth="0.4" />
-              <polygon
-                points={`${u.x},${u.y - 1.2} ${u.x + 1},${u.y + 1} ${u.x - 1},${u.y + 1}`}
-                fill="var(--info)"
-              />
-              <text x={u.x} y={u.y - 3} fill={isLight ? "#1E40AF" : "#BFDBFE"} fontSize="1.6" textAnchor="middle" fontFamily="JetBrains Mono">
-                {u.callsign.split(' ')[0]}
-              </text>
-            </g>
-          ))}
-
-          {/* INCIDENTS */}
-          {activeLayers.incidents && filteredIncidents.map(inc => {
-            const isSelected = selectedIncidentId === inc.id;
-            const isRed = inc.triageCode === 'RED';
-            return (
-              <g
-                key={inc.id}
-                onClick={() => handleIncidentClick(inc)}
-                style={{ cursor: 'pointer' }}
-              >
-                {/* Selection halo */}
-                {isSelected && (
-                  <circle
-                    cx={inc.coords.x}
-                    cy={inc.coords.y}
-                    r="4.2"
-                    fill="none"
-                    stroke="var(--accent)"
-                    strokeWidth="0.5"
-                    strokeDasharray="1, 1"
-                  />
-                )}
-
-                {/* Marker circle */}
-                <circle
-                  cx={inc.coords.x}
-                  cy={inc.coords.y}
-                  r={isRed ? 2.4 : 2}
-                  fill={isRed ? "var(--critical)" : "var(--warning)"}
-                  stroke="#FFFFFF"
-                  strokeWidth="0.4"
-                />
-
-                {/* Label */}
-                <text
-                  x={inc.coords.x}
-                  y={inc.coords.y + 4}
-                  fill={isRed ? "var(--critical)" : "var(--warning)"}
-                  fontSize="1.7"
-                  textAnchor="middle"
-                  fontFamily="Inter"
-                  fontWeight="700"
-                >
-                  {inc.id.toUpperCase()}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Bottom Status & Coordinates Watermark */}
-        <div style={{
-          position: 'absolute',
-          bottom: 10,
-          left: 14,
-          fontSize: '11px',
-          color: 'var(--text-muted)',
-          display: 'flex',
-          gap: '14px',
-          fontFamily: 'var(--font-mono)',
-          pointerEvents: 'none'
-        }}>
-          <span>37°46'29" N, 122°25'10" W</span>
-          <span>DATUM: WGS-84</span>
-          <span>PROJECTION: WEB MERCATOR</span>
-        </div>
-
-        {/* Bottom Right Map Legend */}
-        <div style={{
-          position: 'absolute',
-          bottom: 10,
-          right: 14,
-          backgroundColor: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(17, 24, 39, 0.92)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '6px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          fontSize: '11px',
-          color: 'var(--text-secondary)',
-          boxShadow: 'var(--shadow-xs)'
-        }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span className="status-dot status-dot-critical" />
-            <span>P1 Critical</span>
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span className="status-dot status-dot-warning" />
-            <span>P2 Delayed</span>
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span className="status-dot status-dot-success" />
-            <span>Shelter</span>
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span className="status-dot status-dot-info" />
-            <span>Responder</span>
-          </span>
-        </div>
+      {/* Bottom Right Map Legend */}
+      <div style={{
+        position: 'absolute',
+        bottom: 8,
+        right: 12,
+        zIndex: 1000,
+        backgroundColor: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 23, 42, 0.92)',
+        backdropFilter: 'blur(6px)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '4px 10px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        fontSize: '11px',
+        color: 'var(--text-secondary)',
+        boxShadow: 'var(--shadow-xs)'
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span className="status-dot status-dot-critical" />
+          <span>P1 Critical</span>
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span className="status-dot status-dot-warning" />
+          <span>P2 Delayed</span>
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span className="status-dot status-dot-success" />
+          <span>Shelter</span>
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span className="status-dot status-dot-info" />
+          <span>Responder</span>
+        </span>
       </div>
     </div>
   );

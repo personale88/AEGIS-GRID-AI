@@ -1,4 +1,4 @@
-// AegisGrid Comprehensive Disaster Intelligence Datasets
+// AegisGrid Comprehensive Disaster Intelligence Datasets with Real-World GIS Coordinates
 
 export const SCENARIOS = {
   hurricane: {
@@ -13,17 +13,34 @@ export const SCENARIOS = {
     meshNodesActive: 1482,
     activeIncidentsCount: 38,
     civiliansEvacuated: 14250,
+    geoCenter: [37.7749, -122.4194],
+    zoom: 13,
     hazards: [
-      { id: 'h1', x: 28, y: 35, r: 22, type: 'flood', label: 'Sector 4 Flash Flood Basin', depth: '6.8 ft', currentVelocity: '14 knots' },
-      { id: 'h2', x: 62, y: 48, r: 18, type: 'surge', label: 'Harbor Gateway Tidal Surge', depth: '11.2 ft', currentVelocity: '22 knots' },
-      { id: 'h3', x: 45, y: 72, r: 14, type: 'power', label: 'Substation Gamma Submerged & Downed Grid', danger: '480V Live Water Arc Risk' }
+      { 
+        id: 'h1', 
+        x: 28, y: 35, r: 22, 
+        lat: 37.7650, lng: -122.4250, radiusMeters: 1300,
+        type: 'flood', label: 'Sector 4 Flash Flood Basin', depth: '6.8 ft', currentVelocity: '14 knots' 
+      },
+      { 
+        id: 'h2', 
+        x: 62, y: 48, r: 18, 
+        lat: 37.7910, lng: -122.3920, radiusMeters: 1100,
+        type: 'surge', label: 'Harbor Gateway Tidal Surge', depth: '11.2 ft', currentVelocity: '22 knots' 
+      },
+      { 
+        id: 'h3', 
+        x: 45, y: 72, r: 14, 
+        lat: 37.7480, lng: -122.4080, radiusMeters: 800,
+        type: 'power', label: 'Substation Gamma Submerged & Downed Grid', danger: '480V Live Water Arc Risk' 
+      }
     ],
     shelters: [
       {
         id: 's1',
         name: 'Highland Arena Complex',
-        x: 82,
-        y: 20,
+        x: 82, y: 20,
+        lat: 37.7940, lng: -122.4080,
         capacity: 3500,
         occupancy: 2840,
         power: 'Aux Generator 94%',
@@ -33,8 +50,8 @@ export const SCENARIOS = {
       {
         id: 's2',
         name: 'Bayou Valley Memorial Clinic',
-        x: 35,
-        y: 42,
+        x: 35, y: 42,
+        lat: 37.7580, lng: -122.4260,
         capacity: 800,
         occupancy: 780,
         power: 'Battery Inverter 18% (CRITICAL)',
@@ -44,8 +61,8 @@ export const SCENARIOS = {
       {
         id: 's3',
         name: 'Northern Ridge Technical Institute',
-        x: 55,
-        y: 15,
+        x: 55, y: 15,
+        lat: 37.7880, lng: -122.4380,
         capacity: 2200,
         occupancy: 1100,
         power: 'Grid Live 100%',
@@ -54,10 +71,10 @@ export const SCENARIOS = {
       }
     ],
     units: [
-      { id: 'u1', callsign: 'Triton-1 (Airboat Rescue)', type: 'water_rescue', x: 30, y: 38, status: 'Active Mission', target: 'Elderly Care Facility' },
-      { id: 'u2', callsign: 'Aegis Drone Mesh-4', type: 'drone', x: 42, y: 32, status: 'Airborne Transit', target: 'Medical Supply Drop' },
-      { id: 'u3', callsign: 'USAR Alpha (High-Water)', type: 'ground_heavy', x: 70, y: 28, status: 'Staged / Ready', target: 'Sector 2 Staging' },
-      { id: 'u4', callsign: 'LifeFlight Helo-9', type: 'helicopter', x: 60, y: 18, status: 'Refueling', target: 'Highland Helipad' }
+      { id: 'u1', callsign: 'Triton-1 (Airboat Rescue)', type: 'water_rescue', x: 30, y: 38, lat: 37.7660, lng: -122.4280, status: 'Active Mission', target: 'Elderly Care Facility' },
+      { id: 'u2', callsign: 'Aegis Drone Mesh-4', type: 'drone', x: 42, y: 32, lat: 37.7720, lng: -122.4180, status: 'Airborne Transit', target: 'Medical Supply Drop' },
+      { id: 'u3', callsign: 'USAR Alpha (High-Water)', type: 'ground_heavy', x: 70, y: 28, lat: 37.7840, lng: -122.4060, status: 'Staged / Ready', target: 'Sector 2 Staging' },
+      { id: 'u4', callsign: 'LifeFlight Helo-9', type: 'helicopter', x: 60, y: 18, lat: 37.7920, lng: -122.4120, status: 'Refueling', target: 'Highland Helipad' }
     ],
     incidents: [
       {
@@ -65,6 +82,8 @@ export const SCENARIOS = {
         title: 'Residential Block Submerged - 18 Citizens on Rooftops',
         location: 'Bayou View Blvd & 7th Ave',
         coords: { x: 26, y: 36 },
+        lat: 37.7630,
+        lng: -122.4310,
         triageCode: 'RED',
         severity: 'Immediate Life Threat',
         victims: 18,
@@ -91,6 +110,8 @@ export const SCENARIOS = {
         title: 'Trapped Paramedic Rig in Underpass Backflow',
         location: 'Harbor Expressway Underpass at Canal 3',
         coords: { x: 48, y: 55 },
+        lat: 37.7810,
+        lng: -122.4010,
         triageCode: 'RED',
         severity: 'Immediate Life Threat',
         victims: 3,
@@ -115,6 +136,8 @@ export const SCENARIOS = {
         title: 'Pharmacy Warehouse Structural Roof Delamination',
         location: 'Industrial Park Way, Sector 6',
         coords: { x: 74, y: 44 },
+        lat: 37.7510,
+        lng: -122.3900,
         triageCode: 'YELLOW',
         severity: 'Delayed / Asset Salvage',
         victims: 2,
@@ -149,9 +172,16 @@ export const SCENARIOS = {
         coordinates: [
           { x: 26, y: 36 },
           { x: 34, y: 40 },
-          { x: 45, y: 72 }, // Danger!
+          { x: 45, y: 72 },
           { x: 65, y: 50 },
           { x: 82, y: 20 }
+        ],
+        geoPath: [
+          [37.7630, -122.4310],
+          [37.7660, -122.4200],
+          [37.7480, -122.4080],
+          [37.7780, -122.4000],
+          [37.7940, -122.4080]
         ]
       },
       aegisRoute: {
@@ -168,6 +198,13 @@ export const SCENARIOS = {
           { x: 42, y: 15 },
           { x: 62, y: 12 },
           { x: 82, y: 20 }
+        ],
+        geoPath: [
+          [37.7630, -122.4310],
+          [37.7710, -122.4430],
+          [37.7840, -122.4460],
+          [37.7920, -122.4300],
+          [37.7940, -122.4080]
         ],
         steps: [
           { instruction: 'Depart Bayou View via Northbound Escarpment Ramp', alert: 'Do not turn onto Shoreline Parkway (Flooded)', dist: '1.2 km' },
@@ -191,17 +228,34 @@ export const SCENARIOS = {
     meshNodesActive: 2140,
     activeIncidentsCount: 64,
     civiliansEvacuated: 29800,
+    geoCenter: [47.6062, -122.3321],
+    zoom: 13,
     hazards: [
-      { id: 'h4', x: 50, y: 50, r: 26, type: 'collapse', label: 'Civic Center Building Collapse Grid', debrisDepth: '14 ft concrete rubble', aftershockRisk: '84% prob > M5.5' },
-      { id: 'h5', x: 22, y: 65, r: 16, type: 'gas', label: 'Gas Pipeline Rupture & Vapor Cloud', danger: 'Explosive Atmosphere Threshold 78%' },
-      { id: 'h6', x: 75, y: 30, r: 18, type: 'structural', label: 'Interstate 80 Overpass Buckling', danger: 'Pylon 4 Shear Failure' }
+      { 
+        id: 'h4', 
+        x: 50, y: 50, r: 26, 
+        lat: 47.6080, lng: -122.3350, radiusMeters: 1200,
+        type: 'collapse', label: 'Civic Center Collapse Grid', debrisDepth: '14 ft concrete rubble', aftershockRisk: '84% prob > M5.5' 
+      },
+      { 
+        id: 'h5', 
+        x: 22, y: 65, r: 16, 
+        lat: 47.5940, lng: -122.3240, radiusMeters: 800,
+        type: 'gas', label: 'Gas Pipeline Rupture & Vapor Cloud', danger: 'Explosive Atmosphere Threshold 78%' 
+      },
+      { 
+        id: 'h6', 
+        x: 75, y: 30, r: 18, 
+        lat: 47.6180, lng: -122.3180, radiusMeters: 900,
+        type: 'structural', label: 'Interstate Overpass Buckling', danger: 'Pylon 4 Shear Failure' 
+      }
     ],
     shelters: [
       {
         id: 's4',
         name: 'Olympic Park Open Air Triage Compound',
-        x: 85,
-        y: 80,
+        x: 85, y: 80,
+        lat: 47.6210, lng: -122.3520,
         capacity: 6000,
         occupancy: 4200,
         power: 'Field Solar & Diesel 88%',
@@ -211,8 +265,8 @@ export const SCENARIOS = {
       {
         id: 's5',
         name: 'Downtown Trauma Center Annex',
-        x: 48,
-        y: 52,
+        x: 48, y: 52,
+        lat: 47.6045, lng: -122.3290,
         capacity: 1200,
         occupancy: 1190,
         power: 'Seismic Generator 32%',
@@ -222,8 +276,8 @@ export const SCENARIOS = {
       {
         id: 's6',
         name: 'Westside Stadium Field Hospital',
-        x: 18,
-        y: 25,
+        x: 18, y: 25,
+        lat: 47.5920, lng: -122.3380,
         capacity: 4000,
         occupancy: 1900,
         power: 'Aux Generator 96%',
@@ -232,9 +286,9 @@ export const SCENARIOS = {
       }
     ],
     units: [
-      { id: 'u5', callsign: 'USAR Heavy Dog Squad-3', type: 'k9_rescue', x: 46, y: 48, status: 'Active Search', target: 'Commercial Plaza Core' },
-      { id: 'u6', callsign: 'Seismic Acoustic Sensor Drone-8', type: 'drone', x: 52, y: 46, status: 'Scanning Voids', target: 'Pancake Collapse Void 4' },
-      { id: 'u7', callsign: 'Heavy Extrication Crane 12', type: 'ground_heavy', x: 62, y: 60, status: 'In Transit', target: 'Downtown Nexus' }
+      { id: 'u5', callsign: 'USAR Heavy Dog Squad-3', type: 'k9_rescue', x: 46, y: 48, lat: 47.6070, lng: -122.3330, status: 'Active Search', target: 'Commercial Plaza Core' },
+      { id: 'u6', callsign: 'Acoustic Sensor Drone-8', type: 'drone', x: 52, y: 46, lat: 47.6095, lng: -122.3315, status: 'Scanning Voids', target: 'Pancake Collapse Void 4' },
+      { id: 'u7', callsign: 'Extrication Crane 12', type: 'ground_heavy', x: 62, y: 60, lat: 47.6140, lng: -122.3260, status: 'In Transit', target: 'Downtown Nexus' }
     ],
     incidents: [
       {
@@ -242,6 +296,8 @@ export const SCENARIOS = {
         title: '7-Story Concrete Commercial Center Pancake Collapse',
         location: 'Grand Ave & Market St',
         coords: { x: 47, y: 49 },
+        lat: 47.6075,
+        lng: -122.3340,
         triageCode: 'RED',
         severity: 'Mass Casualty Extrication',
         victims: 34,
@@ -268,6 +324,8 @@ export const SCENARIOS = {
         title: 'Overpass Concrete Pylon Delamination with Suspended Bus',
         location: 'Interstate 80 Overpass Mile 11',
         coords: { x: 74, y: 32 },
+        lat: 47.6185,
+        lng: -122.3210,
         triageCode: 'RED',
         severity: 'Immediate Life Threat',
         victims: 22,
@@ -304,6 +362,12 @@ export const SCENARIOS = {
           { x: 55, y: 55 },
           { x: 68, y: 68 },
           { x: 85, y: 80 }
+        ],
+        geoPath: [
+          [47.6075, -122.3340],
+          [47.6110, -122.3320],
+          [47.6160, -122.3420],
+          [47.6210, -122.3520]
         ]
       },
       aegisRoute: {
@@ -320,6 +384,13 @@ export const SCENARIOS = {
           { x: 52, y: 82 },
           { x: 72, y: 85 },
           { x: 85, y: 80 }
+        ],
+        geoPath: [
+          [47.6075, -122.3340],
+          [47.6030, -122.3420],
+          [47.6100, -122.3560],
+          [47.6180, -122.3580],
+          [47.6210, -122.3520]
         ],
         steps: [
           { instruction: 'Exit Grand Ave via open-air West Plaza esplanade', alert: 'Clear of masonry overhangs; keep 20m from glass towers', dist: '0.8 km' },
@@ -343,17 +414,34 @@ export const SCENARIOS = {
     meshNodesActive: 1890,
     activeIncidentsCount: 42,
     civiliansEvacuated: 19400,
+    geoCenter: [37.8650, -122.2450],
+    zoom: 13,
     hazards: [
-      { id: 'h7', x: 38, y: 42, r: 24, type: 'fire', label: 'Active Flame Front: 80ft Flame Lengths', spreadRate: '45 acres/min', windVector: 'SSE @ 58mph' },
-      { id: 'h8', x: 58, y: 60, r: 20, type: 'smoke', label: 'Zero Visibility Toxic Particulate Cloud', aqi: '840 (LETHAL CO/PM2.5)' },
-      { id: 'h9', x: 25, y: 75, r: 15, type: 'ember', label: 'Ember Cast Zone (2.4-mile spot fires)', spotFireRisk: '98%' }
+      { 
+        id: 'h7', 
+        x: 38, y: 42, r: 24, 
+        lat: 37.8680, lng: -122.2380, radiusMeters: 1400,
+        type: 'fire', label: 'Active Flame Front: 80ft Flames', spreadRate: '45 acres/min', windVector: 'SSE @ 58mph' 
+      },
+      { 
+        id: 'h8', 
+        x: 58, y: 60, r: 20, 
+        lat: 37.8540, lng: -122.2280, radiusMeters: 1200,
+        type: 'smoke', label: 'Toxic Particulate Cloud (AQI 840)', aqi: '840 (LETHAL CO/PM2.5)' 
+      },
+      { 
+        id: 'h9', 
+        x: 25, y: 75, r: 15, 
+        lat: 37.8820, lng: -122.2460, radiusMeters: 900,
+        type: 'ember', label: 'Ember Shower Risk (2.4-mile spotting)', spotFireRisk: '98%' 
+      }
     ],
     shelters: [
       {
         id: 's7',
         name: 'Valley Expo Center (HEPA Filtration)',
-        x: 88,
-        y: 25,
+        x: 88, y: 25,
+        lat: 37.8760, lng: -122.2740,
         capacity: 4500,
         occupancy: 3100,
         power: 'Clean Grid & Microgrid 100%',
@@ -363,8 +451,8 @@ export const SCENARIOS = {
       {
         id: 's8',
         name: 'Canyon Middle School Shelter',
-        x: 42,
-        y: 50,
+        x: 42, y: 50,
+        lat: 37.8610, lng: -122.2480,
         capacity: 900,
         occupancy: 890,
         power: 'Smoke Infiltration Alert',
@@ -374,8 +462,8 @@ export const SCENARIOS = {
       {
         id: 's9',
         name: 'East Ridge Fairgrounds',
-        x: 75,
-        y: 70,
+        x: 75, y: 70,
+        lat: 37.8480, lng: -122.2620,
         capacity: 3000,
         occupancy: 1400,
         power: 'Stable Generator 92%',
@@ -384,9 +472,9 @@ export const SCENARIOS = {
       }
     ],
     units: [
-      { id: 'u8', callsign: 'Strike Team 4401 (Brush Breaker)', type: 'fire_rig', x: 34, y: 46, status: 'Flank Defense', target: 'Foothill Perimeter' },
-      { id: 'u9', callsign: 'Thermal Recon Drone Sky-2', type: 'drone', x: 40, y: 40, status: 'Mapping Flame Perimeter', target: 'Canyon Throat' },
-      { id: 'u10', callsign: 'Air Tanker 104 (Phos-Chek)', type: 'air_tanker', x: 50, y: 30, status: 'Drop Approach', target: 'Ridge Line Retardant' }
+      { id: 'u8', callsign: 'Strike Team 4401 (Brush Breaker)', type: 'fire_rig', x: 34, y: 46, lat: 37.8655, lng: -122.2410, status: 'Flank Defense', target: 'Foothill Perimeter' },
+      { id: 'u9', callsign: 'Thermal Recon Drone Sky-2', type: 'drone', x: 40, y: 40, lat: 37.8690, lng: -122.2360, status: 'Mapping Flame Perimeter', target: 'Canyon Throat' },
+      { id: 'u10', callsign: 'Air Tanker 104 (Phos-Chek)', type: 'air_tanker', x: 50, y: 30, lat: 37.8780, lng: -122.2510, status: 'Drop Approach', target: 'Ridge Line Retardant' }
     ],
     incidents: [
       {
@@ -394,6 +482,8 @@ export const SCENARIOS = {
         title: 'Foothill Estates Cut Off by Crown Fire & Road Ember Storm',
         location: 'Chaparral Crest & Ridge Point Rd',
         coords: { x: 39, y: 44 },
+        lat: 37.8670,
+        lng: -122.2360,
         triageCode: 'RED',
         severity: 'Thermal Surrender Threat',
         victims: 42,
@@ -433,6 +523,12 @@ export const SCENARIOS = {
           { x: 55, y: 55 },
           { x: 75, y: 40 },
           { x: 88, y: 25 }
+        ],
+        geoPath: [
+          [37.8670, -122.2360],
+          [37.8630, -122.2470],
+          [37.8590, -122.2580],
+          [37.8760, -122.2740]
         ]
       },
       aegisRoute: {
@@ -449,6 +545,12 @@ export const SCENARIOS = {
           { x: 45, y: 18 },
           { x: 68, y: 16 },
           { x: 88, y: 25 }
+        ],
+        geoPath: [
+          [37.8670, -122.2360],
+          [37.8750, -122.2390],
+          [37.8840, -122.2530],
+          [37.8760, -122.2740]
         ],
         steps: [
           { instruction: 'Immediately turn North toward Granite Saddle Pass', alert: 'DO NOT head downhill into Canyon Road chimney flume', dist: '2.1 km' },
