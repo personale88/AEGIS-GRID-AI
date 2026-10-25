@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Eye, 
   Scan, 
@@ -12,7 +12,13 @@ import {
   Layers, 
   Crosshair, 
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Camera,
+  CameraOff,
+  Globe,
+  Link,
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
@@ -25,6 +31,74 @@ export default function MultimodalTriageLab() {
   const [scanCompleted, setScanCompleted] = useState(true);
   const [hoveredBox, setHoveredBox] = useState(null);
   const [customImage, setCustomImage] = useState(null);
+
+  // Real live camera & Web URL inputs
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [webUrlInput, setWebUrlInput] = useState('');
+  const [cameraError, setCameraError] = useState(null);
+
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  // Stop camera on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, []);
+
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      tacticalAudio.playRadarPing();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setIsCameraActive(true);
+      setCustomImage(null);
+    } catch (err) {
+      console.warn('Camera access error:', err.message);
+      setCameraError('Camera access unavailable or permission dismissed.');
+      setIsCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const captureCameraFrame = () => {
+    if (!videoRef.current) return;
+    const canvas = canvasRef.current || document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    setCustomImage(dataUrl);
+    stopCamera();
+    runAiScan();
+  };
+
+  const handleWebUrlSubmit = (e) => {
+    e?.preventDefault();
+    if (!webUrlInput.trim()) return;
+    setCustomImage(webUrlInput.trim());
+    setShowUrlInput(false);
+    runAiScan();
+  };
 
   const runAiScan = () => {
     setIsScanning(true);
@@ -51,6 +125,7 @@ export default function MultimodalTriageLab() {
       const reader = new FileReader();
       reader.onload = (event) => {
         setCustomImage(event.target.result);
+        stopCamera();
         runAiScan();
       };
       reader.readAsDataURL(file);
@@ -66,47 +141,141 @@ export default function MultimodalTriageLab() {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', minHeight: '640px' }}>
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
       {/* Left Column: Image Viewer with Neural Scan Overlay */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {/* Preset Selector */}
-        <div className="card" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={15} color="var(--accent)" />
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Select Incident Feed:</span>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
-            {incidents.slice(0, 3).map(inc => (
-              <button
-                key={inc.id}
-                onClick={() => {
-                  setCustomImage(null);
-                  selectIncident(inc.id, false);
-                  tacticalAudio.playTacticalBeep(1100, 0.04, 0.03);
-                }}
-                className="btn btn-xs"
-                style={{
-                  backgroundColor: activeIncident.id === inc.id && !customImage ? 'var(--accent-bg)' : 'var(--surface-secondary)',
-                  color: activeIncident.id === inc.id && !customImage ? 'var(--accent)' : 'var(--text-secondary)',
-                  borderColor: activeIncident.id === inc.id && !customImage ? 'var(--accent)' : 'var(--border-subtle)',
-                  fontWeight: 600
-                }}
-              >
-                <span>{inc.id.toUpperCase()}: {inc.title.slice(0, 18)}...</span>
-              </button>
-            ))}
+        {/* Preset & Ingest Selector */}
+        <div className="card" style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Sparkles size={15} color="var(--accent)" />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Select Incident Feed:</span>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', alignItems: 'center' }}>
+              {incidents.slice(0, 3).map(inc => (
+                <button
+                  key={inc.id}
+                  onClick={() => {
+                    stopCamera();
+                    setCustomImage(null);
+                    selectIncident(inc.id, false);
+                    tacticalAudio.playTacticalBeep(1100, 0.04, 0.03);
+                  }}
+                  className="btn btn-xs"
+                  style={{
+                    backgroundColor: activeIncident.id === inc.id && !customImage && !isCameraActive ? 'var(--accent-bg)' : 'var(--surface-secondary)',
+                    color: activeIncident.id === inc.id && !customImage && !isCameraActive ? 'var(--accent)' : 'var(--text-secondary)',
+                    borderColor: activeIncident.id === inc.id && !customImage && !isCameraActive ? 'var(--accent)' : 'var(--border-subtle)',
+                    fontWeight: 600
+                  }}
+                >
+                  <span>{inc.id.toUpperCase()}: {inc.title.slice(0, 18)}...</span>
+                </button>
+              ))}
 
-            {/* Custom Upload Button */}
-            <label 
-              className="btn btn-secondary btn-xs" 
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-              title="Upload your own disaster photo for instant AI triage"
-            >
-              <Upload size={12} color="var(--accent)" />
-              <span>Upload Custom</span>
-              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-            </label>
+              {/* Real Live Device Camera Button */}
+              <button
+                onClick={() => {
+                  if (isCameraActive) {
+                    stopCamera();
+                  } else {
+                    startCamera();
+                  }
+                }}
+                className={`btn btn-xs ${isCameraActive ? 'btn-critical' : 'btn-secondary'}`}
+                style={{ gap: '4px', fontWeight: 600 }}
+                title="Open real live device webcam / mobile camera for instant real-world AI triage"
+              >
+                {isCameraActive ? <CameraOff size={12} /> : <Camera size={12} color="var(--accent)" />}
+                <span>{isCameraActive ? 'Stop Camera' : 'Live Camera'}</span>
+              </button>
+
+              {/* Real Live Image URL Ingest Button */}
+              <button
+                onClick={() => setShowUrlInput(!showUrlInput)}
+                className={`btn btn-xs ${showUrlInput ? 'btn-outline' : 'btn-secondary'}`}
+                style={{ gap: '4px', fontWeight: 600 }}
+                title="Paste a real-world photo URL from news, Twitter, or live disaster cameras"
+              >
+                <Globe size={12} color="var(--accent)" />
+                <span>Web URL</span>
+              </button>
+
+              {/* Custom Upload Button */}
+              <label 
+                className="btn btn-secondary btn-xs" 
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="Upload your own disaster photo for instant AI triage"
+              >
+                <Upload size={12} color="var(--accent)" />
+                <span>Upload</span>
+                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+              </label>
+            </div>
           </div>
+
+          {/* Web URL Ingestion Bar & Real Presets */}
+          {showUrlInput && (
+            <div style={{
+              marginTop: '6px',
+              padding: '8px 12px',
+              backgroundColor: 'var(--surface-secondary)',
+              borderRadius: 'var(--radius-xs)',
+              border: '1px solid var(--border-medium)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <form onSubmit={handleWebUrlSubmit} style={{ display: 'flex', gap: '6px' }}>
+                <input
+                  type="url"
+                  placeholder="Paste real image URL from web (e.g. news photo, disaster camera, tweet image)..."
+                  value={webUrlInput}
+                  onChange={(e) => setWebUrlInput(e.target.value)}
+                  className="input"
+                  style={{ flex: 1, fontSize: '11px', height: '28px' }}
+                />
+                <button type="submit" className="btn btn-primary btn-xs" style={{ gap: '4px' }}>
+                  <Link size={12} />
+                  <span>Ingest & Scan</span>
+                </button>
+              </form>
+
+              {/* Quick Real Photography Presets */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>REAL SAMPLES:</span>
+                {[
+                  { name: 'Monsoon Inundation', url: 'https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=1200&q=80' },
+                  { name: 'Urban Downpour Flood', url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=1200&q=80' },
+                  { name: 'Rescue Boat Operation', url: 'https://images.unsplash.com/photo-1579202673506-ca3ce28943ef?auto=format&fit=crop&w=1200&q=80' }
+                ].map(p => (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => {
+                      setCustomImage(p.url);
+                      setShowUrlInput(false);
+                      stopCamera();
+                      runAiScan();
+                    }}
+                    className="btn btn-ghost btn-xs"
+                    style={{ fontSize: '10px', padding: '1px 6px', color: 'var(--accent)' }}
+                  >
+                    + {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {cameraError && (
+            <div style={{ color: 'var(--warning)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <AlertTriangle size={12} />
+              <span>{cameraError}</span>
+            </div>
+          )}
         </div>
 
         {/* Main Image Stage */}
@@ -115,18 +284,57 @@ export default function MultimodalTriageLab() {
           {isScanning && <div className="laser-scanner" />}
 
           <div style={{ position: 'relative', minHeight: '440px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img 
-              src={customImage || activeIncident.image} 
-              alt={activeIncident.title} 
-              style={{
-                width: '100%',
-                height: '450px',
-                objectFit: 'cover',
-                display: 'block',
-                filter: isScanning ? 'brightness(1.15) contrast(1.1)' : 'none',
-                transition: 'filter 0.3s ease'
-              }} 
-            />
+            {isCameraActive ? (
+              <div style={{ position: 'relative', width: '100%', height: '450px', backgroundColor: '#000' }}>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: 20,
+                  left: 0,
+                  right: 0,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '12px',
+                  zIndex: 20
+                }}>
+                  <button
+                    onClick={captureCameraFrame}
+                    className="btn btn-critical"
+                    style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 700, gap: '6px', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.5)' }}
+                  >
+                    <Camera size={16} />
+                    <span>Capture Frame & Run AI Triage</span>
+                  </button>
+                  <button
+                    onClick={stopCamera}
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 14px', fontSize: '12px' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <img 
+                src={customImage || activeIncident.image} 
+                alt={activeIncident.title} 
+                style={{
+                  width: '100%',
+                  height: '450px',
+                  objectFit: 'cover',
+                  display: 'block',
+                  filter: isScanning ? 'brightness(1.15) contrast(1.1)' : 'none',
+                  transition: 'filter 0.3s ease'
+                }} 
+              />
+            )}
 
             {/* AI Bounding Boxes */}
             {scanCompleted && boundingBoxes.map(b => (
