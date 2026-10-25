@@ -7,22 +7,24 @@ import {
   Copy, 
   Check, 
   ShieldAlert, 
-  Terminal,
-  Activity,
+  Activity, 
   Radio
 } from 'lucide-react';
+import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
 
-export default function CommanderCopilot({ scenario }) {
+export default function CommanderCopilot() {
+  const { scenarioData } = useOperations();
+
   const [messages, setMessages] = useState([
     {
       id: 'm1',
       sender: 'aegis',
       timestamp: '10:42:15',
       text: `**AegisGrid Tactical Incident Commander Copilot v3.8 initialized.**
-Current operational theater: **${scenario.name}**
-Threat Level: **${scenario.threatLevel}**
-Active Incidents: **${scenario.activeIncidentsCount}** | Mesh Nodes: **${scenario.meshNodesActive}**
+Current operational theater: **${scenarioData.name}**
+Threat Level: **${scenarioData.threatLevel}**
+Active Incidents: **${scenarioData.activeIncidentsCount}** | Mesh Nodes: **${scenarioData.meshNodesActive}**
 
 I am ready to synthesize military-grade Situation Reports (SitRep), compute dynamic hazard dispersion models, or coordinate cross-agency resource allocation. Select a command directive below or enter custom instructions.`
     }
@@ -34,7 +36,7 @@ I am ready to synthesize military-grade Situation Reports (SitRep), compute dyna
 
   const predefinedPrompts = [
     { label: '📋 Generate FEMA SitRep', prompt: 'Generate an official FEMA / State OES Situation Report (SitRep) summarizing current casualties, structural damage, and operational bottlenecks.' },
-    { label: '🌬️ Drone Mesh Viability', prompt: `Analyze autonomous drone flight viability considering the current atmospheric conditions (${scenario.windSpeed}, ${scenario.precipitation}).` },
+    { label: '🌬️ Drone Mesh Viability', prompt: `Analyze autonomous drone flight viability considering the current atmospheric conditions (${scenarioData.windSpeed}, ${scenarioData.precipitation}).` },
     { label: '⏳ Casualty Risk Forecast', prompt: 'Calculate the expected casualty increase rate if evacuation of the primary residential zone is delayed by 45 minutes.' },
     { label: '📢 Draft Emergency Alert', prompt: 'Draft a clear, urgent multi-channel civilian emergency alert for cell-broadcast and P2P mesh radios.' }
   ];
@@ -60,13 +62,13 @@ I am ready to synthesize military-grade Situation Reports (SitRep), compute dyna
       let reply = '';
       if (query.includes('SitRep') || query.includes('FEMA')) {
         reply = `### [CONFIDENTIAL // FEMA-ICS-209] INCIDENT SITUATION REPORT
-**INCIDENT:** ${scenario.name}  
+**INCIDENT:** ${scenarioData.name}  
 **OPERATIONAL PERIOD:** 0600 - 1800 LOCAL  
-**THREAT LEVEL:** ${scenario.threatLevel}  
+**THREAT LEVEL:** ${scenarioData.threatLevel}  
 
 #### 1. EXECUTIVE SUMMARY:
-- **Active Incident Hotspots:** ${scenario.activeIncidentsCount} critical sites triaged.
-- **Evacuation Status:** ${scenario.civiliansEvacuated.toLocaleString()} civilians routed via AegisGrid dynamic corridors.
+- **Active Incident Hotspots:** ${scenarioData.activeIncidentsCount} critical sites triaged.
+- **Evacuation Status:** ${scenarioData.civiliansEvacuated.toLocaleString()} civilians routed via AegisGrid dynamic corridors.
 - **Fatal Hazard Intercepts:** Shoreline underpass submerged to 6.8ft; primary arterial blocked. Zero casualties recorded on AegisGrid recommended detour.
 
 #### 2. RESOURCE MOBILIZATION:
@@ -80,7 +82,7 @@ I am ready to synthesize military-grade Situation Reports (SitRep), compute dyna
 3. Keep peer-to-peer mesh frequencies open on 433 MHz and 915 MHz bands.`;
       } else if (query.includes('Drone') || query.includes('Viability')) {
         reply = `### [AEGIS-AERO] AUTONOMOUS DRONE FLIGHT RISK ASSESSMENT
-**ATMOSPHERIC TELEMETRY:** Wind: ${scenario.windSpeed} | Rain: ${scenario.precipitation}  
+**ATMOSPHERIC TELEMETRY:** Wind: ${scenarioData.windSpeed} | Rain: ${scenarioData.precipitation}  
 
 - **Heavy-Lift Hexacopters (Cargo 25kg+):** **GO / CLEARED (92% Stability Margin).** Advanced gyro-stabilization accommodates gusts up to 65 mph along sheltered ridgeline waypoints.
 - **Lightweight Thermal Recon Drones:** **CONDITIONAL GO.** Advised to maintain low-altitude corridor (<60m AGL) to avoid cross-canyon thermal turbulence.
@@ -97,7 +99,7 @@ I am ready to synthesize military-grade Situation Reports (SitRep), compute dyna
         reply = `### [AEGIS-COPILOT] DIRECTIVE SYNTHESIS
 Query acknowledged: "${query}".
 
-Based on live telemetry from ${scenario.meshNodesActive} mesh nodes and real-time GIS mapping:
+Based on live telemetry from ${scenarioData.meshNodesActive} mesh nodes and real-time GIS mapping:
 1. All critical priority task forces have been synchronized.
 2. Recommended route clearance remains active with 98% safety confidence.
 3. Logistics mesh has stabilized frontline oxygen and blood supply reserves.
@@ -117,7 +119,7 @@ Tactical command standing by for further instructions.`;
 
       setIsGenerating(false);
       tacticalAudio.playDispatchConfirmed();
-    }, 1200);
+    }, 1100);
   };
 
   const copyToClipboard = (text, id) => {
@@ -128,157 +130,140 @@ Tactical command standing by for further instructions.`;
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', height: 'calc(100vh - 140px)', minHeight: '680px' }}>
-      <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Header Bar */}
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'rgba(9, 13, 24, 0.95)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, rgba(0,240,255,0.2), rgba(139,92,246,0.3))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid var(--border-glow)'
-            }}>
-              <Cpu size={18} color="var(--cyan)" />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '15px', margin: 0, color: '#fff' }}>Tactical AI Incident Commander Copilot</h3>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
-                Real-Time ICS-209 Synthesis, Predictive Risk Modeling & Multi-Agency Dispatch
-              </p>
-            </div>
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 160px)', minHeight: '620px', overflow: 'hidden' }}>
+      {/* Header Bar */}
+      <div className="card-header" style={{ padding: '14px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: 'var(--radius-sm)',
+            backgroundColor: 'var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Cpu size={18} color="var(--text-on-accent)" />
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="live-dot" />
-            <span className="mono" style={{ fontSize: '11px', color: 'var(--cyan)' }}>LLM-INFERENCE ENGINE: ONLINE</span>
+          <div>
+            <h3 style={{ fontSize: '15px', margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
+              Tactical AI Incident Commander Copilot
+            </h3>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
+              Real-Time ICS-209 Synthesis, Predictive Risk Modeling & Operational Directives
+            </p>
           </div>
         </div>
 
-        {/* Predefined Quick Action Prompts */}
-        <div style={{
-          padding: '10px 20px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto'
-        }}>
-          {predefinedPrompts.map((p, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSendPrompt(p.prompt)}
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
-            >
-              <Sparkles size={12} color="var(--cyan)" />
-              <span>{p.label}</span>
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className="status-dot status-dot-success" />
+          <span className="mono" style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>INFERENCE ENGINE ACTIVE</span>
         </div>
+      </div>
 
-        {/* Chat Stream Area */}
-        <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {messages.map(m => {
-            const isUser = m.sender === 'user';
-            return (
-              <div
-                key={m.id}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignSelf: isUser ? 'flex-end' : 'flex-start',
-                  maxWidth: isUser ? '75%' : '85%'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', alignSelf: isUser ? 'flex-end' : 'flex-start' }}>
-                  <span className="mono" style={{ fontSize: '10px', color: isUser ? 'var(--cyan)' : 'var(--text-muted)' }}>
-                    {isUser ? 'INCIDENT COMMANDER' : 'AEGIS-AI COPILOT'} • {m.timestamp}
-                  </span>
-                  {!isUser && (
-                    <button
-                      onClick={() => copyToClipboard(m.text, m.id)}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px' }}
-                      title="Copy to clipboard"
-                    >
-                      {copiedId === m.id ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
-                      <span>{copiedId === m.id ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  )}
-                </div>
-
-                <div style={{
-                  background: isUser ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(37, 99, 235, 0.25))' : 'rgba(255, 255, 255, 0.03)',
-                  border: isUser ? '1px solid var(--border-glow)' : '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '14px 18px',
-                  color: '#f8fafc',
-                  fontSize: '13px',
-                  lineHeight: '1.6',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {m.text}
-                </div>
-              </div>
-            );
-          })}
-
-          {isGenerating && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--cyan)', fontSize: '12px', padding: '10px' }}>
-              <span className="live-dot" />
-              <span>AegisGrid Copilot synthesizing strategic disaster telemetry...</span>
-            </div>
-          )}
-        </div>
-
-        {/* Input Bar */}
-        <div style={{
-          padding: '14px 20px',
-          borderTop: '1px solid var(--border-subtle)',
-          background: 'rgba(9, 13, 24, 0.95)',
-          display: 'flex',
-          gap: '12px'
-        }}>
-          <input
-            type="text"
-            value={inputPrompt}
-            onChange={e => setInputPrompt(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSendPrompt()}
-            placeholder="Type tactical directive or query (e.g. 'Assess bridge collapse risk' or 'Draft shelter intake plan')..."
-            style={{
-              flex: 1,
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px 16px',
-              color: '#fff',
-              fontSize: '13px',
-              outline: 'none',
-              fontFamily: 'inherit'
-            }}
-          />
-
+      {/* Predefined Prompts */}
+      <div style={{
+        padding: '10px 18px',
+        backgroundColor: 'var(--surface-secondary)',
+        borderBottom: '1px solid var(--border-subtle)',
+        display: 'flex',
+        gap: '8px',
+        overflowX: 'auto'
+      }}>
+        {predefinedPrompts.map((p, idx) => (
           <button
-            onClick={() => handleSendPrompt()}
-            disabled={isGenerating || !inputPrompt.trim()}
-            className="btn btn-primary"
-            style={{ padding: '0 20px' }}
+            key={idx}
+            onClick={() => handleSendPrompt(p.prompt)}
+            className="btn btn-secondary btn-xs"
+            style={{ whiteSpace: 'nowrap' }}
           >
-            <Send size={15} />
-            <span>Transmit</span>
+            <Sparkles size={12} color="var(--accent)" />
+            <span>{p.label}</span>
           </button>
-        </div>
+        ))}
+      </div>
+
+      {/* Messages Feed */}
+      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {messages.map(m => {
+          const isUser = m.sender === 'user';
+          return (
+            <div
+              key={m.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignSelf: isUser ? 'flex-end' : 'flex-start',
+                maxWidth: isUser ? '75%' : '85%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', alignSelf: isUser ? 'flex-end' : 'flex-start' }}>
+                <span className="mono" style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                  {isUser ? 'INCIDENT COMMANDER' : 'AEGIS-AI COPILOT'} • {m.timestamp}
+                </span>
+                {!isUser && (
+                  <button
+                    onClick={() => copyToClipboard(m.text, m.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px' }}
+                    title="Copy to clipboard"
+                  >
+                    {copiedId === m.id ? <Check size={11} color="var(--success)" /> : <Copy size={11} />}
+                    <span>{copiedId === m.id ? 'Copied' : 'Copy'}</span>
+                  </button>
+                )}
+              </div>
+
+              <div style={{
+                backgroundColor: isUser ? 'var(--accent-bg)' : 'var(--surface-secondary)',
+                border: isUser ? '1px solid var(--accent-border)' : '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+                lineHeight: '1.55',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {m.text}
+              </div>
+            </div>
+          );
+        })}
+
+        {isGenerating && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontSize: '12px' }}>
+            <span className="status-dot status-dot-info pulse-subtle" />
+            <span>AegisGrid Copilot synthesizing strategic disaster telemetry...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Input Form */}
+      <div style={{
+        padding: '12px 18px',
+        borderTop: '1px solid var(--border-subtle)',
+        backgroundColor: 'var(--surface-secondary)',
+        display: 'flex',
+        gap: '10px'
+      }}>
+        <input
+          type="text"
+          value={inputPrompt}
+          onChange={e => setInputPrompt(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSendPrompt()}
+          placeholder="Enter operational directive or query (e.g. 'Draft emergency broadcast' or 'Assess bridge structural load')..."
+          className="input"
+          style={{ flex: 1, height: '38px', fontSize: '13px' }}
+        />
+
+        <button
+          onClick={() => handleSendPrompt()}
+          disabled={isGenerating || !inputPrompt.trim()}
+          className="btn btn-primary"
+          style={{ height: '38px', padding: '0 18px' }}
+        >
+          <Send size={14} />
+          <span>Transmit</span>
+        </button>
       </div>
     </div>
   );

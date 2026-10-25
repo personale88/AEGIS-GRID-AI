@@ -10,22 +10,21 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   ArrowRight,
-  TrendingDown,
-  Plane,
-  RefreshCw
+  Plane
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
 
-export default function ResourceMatrix({ scenario }) {
-  const [shelters, setShelters] = useState(scenario.shelters);
+export default function ResourceMatrix() {
+  const { shelters, rebalanceShelterSupplies } = useOperations();
   const [isRebalancing, setIsRebalancing] = useState(false);
   const [rebalanceProgress, setRebalanceProgress] = useState(0);
   const [deliveryCompleted, setDeliveryCompleted] = useState(false);
 
   // Identify Deficit Shelter (lowest O2) and Surplus Shelter (highest O2)
-  const deficitShelter = [...shelters].sort((a, b) => a.supplies.oxygenTanks - b.supplies.oxygenTanks)[0];
-  const surplusShelter = [...shelters].sort((a, b) => b.supplies.oxygenTanks - a.supplies.oxygenTanks)[0];
+  const deficitShelter = [...shelters].sort((a, b) => a.supplies.oxygenTanks - b.supplies.oxygenTanks)[0] || shelters[0];
+  const surplusShelter = [...shelters].sort((a, b) => b.supplies.oxygenTanks - a.supplies.oxygenTanks)[0] || shelters[0];
 
   const triggerDroneRebalance = () => {
     setIsRebalancing(true);
@@ -56,46 +55,23 @@ export default function ResourceMatrix({ scenario }) {
           // Confetti fallback
         }
 
-        // Dynamically rebalance supplies in state
-        setShelters(prev => prev.map(s => {
-          if (s.id === deficitShelter.id) {
-            return {
-              ...s,
-              status: 'Rebalanced / Stabilized',
-              supplies: {
-                ...s.supplies,
-                oxygenTanks: s.supplies.oxygenTanks + 25,
-                bloodUnits: s.supplies.bloodUnits + 15,
-                traumaKits: s.supplies.traumaKits + 40
-              }
-            };
-          }
-          if (s.id === surplusShelter.id) {
-            return {
-              ...s,
-              supplies: {
-                ...s.supplies,
-                oxygenTanks: s.supplies.oxygenTanks - 25,
-                bloodUnits: s.supplies.bloodUnits - 15,
-                traumaKits: s.supplies.traumaKits - 40
-              }
-            };
-          }
-          return s;
-        }));
+        rebalanceShelterSupplies(surplusShelter.id, deficitShelter.id, {
+          oxygenTanks: 25,
+          bloodUnits: 15,
+          traumaKits: 40
+        });
       }
-    }, 400);
+    }, 350);
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', minHeight: '680px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', minHeight: '640px' }}>
       {/* Left Column: Regional Shelters Resource Matrix */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Header & Overview */}
-        <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="card" style={{ padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Share2 size={18} color="var(--cyan)" />
+            <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Share2 size={16} color="var(--accent)" />
               <span>Regional Shelter Resource Mesh & Logistics Grid</span>
             </h3>
             <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -103,13 +79,13 @@ export default function ResourceMatrix({ scenario }) {
             </p>
           </div>
 
-          <span className="badge badge-purple" style={{ fontFamily: 'var(--font-mono)' }}>
+          <span className="badge badge-accent">
             AUTONOMOUS BALANCER ACTIVE
           </span>
         </div>
 
         {/* Shelter Cards Table */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {shelters.map(s => {
             const isDeficit = s.supplies.oxygenTanks <= 10;
             const isSurplus = s.supplies.oxygenTanks > 50;
@@ -117,25 +93,22 @@ export default function ResourceMatrix({ scenario }) {
             return (
               <div 
                 key={s.id} 
-                className="glass-panel"
+                className="card"
                 style={{
                   padding: '16px',
-                  border: isDeficit ? '1px solid rgba(255, 51, 102, 0.45)' : 
-                          isSurplus ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid var(--border-subtle)',
-                  background: isDeficit ? 'linear-gradient(135deg, rgba(255, 51, 102, 0.05) 0%, rgba(14, 21, 37, 0.75) 100%)' :
-                              isSurplus ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(14, 21, 37, 0.75) 100%)' : 'var(--bg-card)'
+                  borderLeft: isDeficit ? '3px solid var(--critical)' : isSurplus ? '3px solid var(--success)' : '1px solid var(--border-subtle)'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h4 style={{ fontSize: '15px', margin: 0 }}>{s.name}</h4>
-                      <span className={`badge ${isDeficit ? 'badge-red' : isSurplus ? 'badge-green' : 'badge-cyan'}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
+                      <h4 style={{ fontSize: '14px', margin: 0, fontWeight: 700 }}>{s.name}</h4>
+                      <span className={`badge ${isDeficit ? 'badge-critical' : isSurplus ? 'badge-success' : 'badge-info'}`}>
                         {s.status}
                       </span>
                     </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      Capacity: {s.occupancy} / {s.capacity} ({Math.round((s.occupancy / s.capacity) * 100)}%) • Power: {s.power}
+                      Capacity: {s.occupancy.toLocaleString()} / {s.capacity.toLocaleString()} ({Math.round((s.occupancy / s.capacity) * 100)}%) • Power: {s.power}
                     </span>
                   </div>
 
@@ -145,58 +118,53 @@ export default function ResourceMatrix({ scenario }) {
                 </div>
 
                 {/* Supply Meters Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-                  {/* Oxygen */}
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                      <Wind size={12} color="var(--cyan)" />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                  <div style={{ backgroundColor: 'var(--surface-secondary)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                      <Wind size={11} color="var(--accent)" />
                       <span>O2 CYLINDERS</span>
                     </div>
-                    <strong style={{ fontSize: '15px', color: s.supplies.oxygenTanks <= 10 ? '#ff3366' : '#fff', fontFamily: 'var(--font-mono)' }}>
+                    <strong className="mono" style={{ fontSize: '14px', color: s.supplies.oxygenTanks <= 10 ? 'var(--critical)' : 'var(--text-primary)' }}>
                       {s.supplies.oxygenTanks} units
                     </strong>
                   </div>
 
-                  {/* Blood */}
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                      <HeartPulse size={12} color="#ff3366" />
+                  <div style={{ backgroundColor: 'var(--surface-secondary)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                      <HeartPulse size={11} color="var(--critical)" />
                       <span>O- BLOOD</span>
                     </div>
-                    <strong style={{ fontSize: '15px', color: s.supplies.bloodUnits <= 10 ? '#ff3366' : '#fff', fontFamily: 'var(--font-mono)' }}>
+                    <strong className="mono" style={{ fontSize: '14px', color: s.supplies.bloodUnits <= 10 ? 'var(--critical)' : 'var(--text-primary)' }}>
                       {s.supplies.bloodUnits} units
                     </strong>
                   </div>
 
-                  {/* Water */}
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                      <Droplet size={12} color="#38bdf8" />
+                  <div style={{ backgroundColor: 'var(--surface-secondary)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                      <Droplet size={11} color="var(--info)" />
                       <span>WATER</span>
                     </div>
-                    <strong style={{ fontSize: '15px', color: '#fff', fontFamily: 'var(--font-mono)' }}>
+                    <strong className="mono" style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                       {(s.supplies.waterLiters / 1000).toFixed(1)}k L
                     </strong>
                   </div>
 
-                  {/* Trauma Kits */}
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                      <Package size={12} color="#fbbf24" />
+                  <div style={{ backgroundColor: 'var(--surface-secondary)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                      <Package size={11} color="var(--warning)" />
                       <span>TRAUMA KITS</span>
                     </div>
-                    <strong style={{ fontSize: '15px', color: '#fff', fontFamily: 'var(--font-mono)' }}>
+                    <strong className="mono" style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                       {s.supplies.traumaKits}
                     </strong>
                   </div>
 
-                  {/* Meals */}
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                      <Zap size={12} color="#a78bfa" />
+                  <div style={{ backgroundColor: 'var(--surface-secondary)', padding: '8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                      <Zap size={11} color="var(--accent)" />
                       <span>RATIONS</span>
                     </div>
-                    <strong style={{ fontSize: '15px', color: '#fff', fontFamily: 'var(--font-mono)' }}>
+                    <strong className="mono" style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                       {(s.supplies.meals / 1000).toFixed(1)}k
                     </strong>
                   </div>
@@ -208,112 +176,106 @@ export default function ResourceMatrix({ scenario }) {
       </div>
 
       {/* Right Column: AI Autonomous Rebalancing Commander */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div className="glass-panel" style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <span className="badge badge-cyan" style={{ marginBottom: '8px' }}>
-              AUTONOMOUS LOGISTICS DISPATCH
-            </span>
-            <h3 style={{ fontSize: '17px', margin: 0 }}>Automated Relief Air-Bridge</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              AI detected acute supply deficit in triage clinics and established a high-priority drone aerial flight corridor.
-            </p>
+      <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <span className="badge badge-accent" style={{ marginBottom: '6px' }}>
+            AUTONOMOUS LOGISTICS DISPATCH
+          </span>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>Automated Relief Air-Bridge</h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            AI detected acute supply deficit in triage clinics and established a high-priority drone aerial flight corridor.
+          </p>
+        </div>
+
+        {/* Transfer Flow Visualizer */}
+        <div style={{
+          backgroundColor: 'var(--surface-secondary)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ width: '45%' }}>
+              <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: 600 }}>SURPLUS SOURCE:</span>
+              <h5 style={{ fontSize: '13px', color: 'var(--text-primary)', margin: '2px 0' }}>{surplusShelter.name}</h5>
+              <span className="mono" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                Oxygen: {surplusShelter.supplies.oxygenTanks} units
+              </span>
+            </div>
+
+            <Plane size={18} color="var(--accent)" style={{ transform: 'rotate(90deg)' }} />
+
+            <div style={{ width: '45%', textAlign: 'right' }}>
+              <span style={{ fontSize: '10px', color: 'var(--critical)', fontWeight: 600 }}>DEFICIT TARGET:</span>
+              <h5 style={{ fontSize: '13px', color: 'var(--text-primary)', margin: '2px 0' }}>{deficitShelter.name}</h5>
+              <span className="mono" style={{ fontSize: '11px', color: deficitShelter.supplies.oxygenTanks <= 10 ? 'var(--critical)' : 'var(--success)' }}>
+                Oxygen: {deficitShelter.supplies.oxygenTanks} units
+              </span>
+            </div>
           </div>
 
-          {/* Transfer Flow Visualizer */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px',
+            backgroundColor: 'var(--surface-primary)',
+            padding: '8px 10px',
+            borderRadius: 'var(--radius-xs)',
+            fontSize: '11px',
+            fontFamily: 'var(--font-mono)',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
+            justifyContent: 'space-between',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-subtle)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ width: '45%' }}>
-                <span style={{ fontSize: '10px', color: '#34d399', fontWeight: 600 }}>SURPLUS PROVIDER:</span>
-                <h5 style={{ fontSize: '13px', color: '#fff', margin: '2px 0' }}>{surplusShelter.name}</h5>
-                <span className="mono" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  Oxygen: {surplusShelter.supplies.oxygenTanks} units
-                </span>
-              </div>
-
-              <Plane size={20} color="var(--cyan)" style={{ transform: 'rotate(90deg)' }} />
-
-              <div style={{ width: '45%', textAlign: 'right' }}>
-                <span style={{ fontSize: '10px', color: '#ff3366', fontWeight: 600 }}>DEFICIT RECIPIENT:</span>
-                <h5 style={{ fontSize: '13px', color: '#fff', margin: '2px 0' }}>{deficitShelter.name}</h5>
-                <span className="mono" style={{ fontSize: '11px', color: deficitShelter.supplies.oxygenTanks <= 10 ? '#ff3366' : '#10b981' }}>
-                  Oxygen: {deficitShelter.supplies.oxygenTanks} units
-                </span>
-              </div>
-            </div>
-
-            {/* Flight Corridor Telemetry */}
-            <div style={{
-              background: 'rgba(0,0,0,0.3)',
-              padding: '10px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '11px',
-              fontFamily: 'var(--font-mono)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              color: 'var(--text-secondary)'
-            }}>
-              <span>CORRIDOR: AIR-WAY SKY-7</span>
-              <span>EST FLIGHT: 5.4 MINS</span>
-              <span style={{ color: 'var(--cyan)' }}>AIRSPEED: 92 KM/H</span>
-            </div>
-          </div>
-
-          {/* Progress bar during rebalance */}
-          {isRebalancing && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--cyan)', fontWeight: 600 }}>Drone Swarm Cargo In Transit...</span>
-                <span className="mono" style={{ color: '#fff' }}>{rebalanceProgress}%</span>
-              </div>
-              <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${rebalanceProgress}%`, height: '100%', background: 'linear-gradient(90deg, #00f0ff, #10b981)', transition: 'width 0.3s ease' }} />
-              </div>
-            </div>
-          )}
-
-          {deliveryCompleted && (
-            <div style={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid var(--border-safe)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <CheckCircle2 size={20} color="#10b981" />
-              <div>
-                <strong style={{ fontSize: '13px', color: '#34d399', display: 'block' }}>Delivery Confirmed & Verified</strong>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  +25 O2 Tanks and +15 Blood Units delivered to {deficitShelter.name}. Crisis deficit neutralized!
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Action Button */}
-          <div style={{ marginTop: 'auto' }}>
-            <button
-              onClick={triggerDroneRebalance}
-              disabled={isRebalancing}
-              className="btn btn-primary"
-              style={{ width: '100%', padding: '14px', fontSize: '13px', fontWeight: 700 }}
-              id="btn-trigger-drone-rebalance"
-            >
-              <Plane size={16} />
-              <span>{isRebalancing ? 'Drone Logistics Mesh Dispatched...' : 'Trigger Autonomous Drone Rebalancing'}</span>
-            </button>
+            <span>CORRIDOR: AIR-WAY SKY-7</span>
+            <span>EST FLIGHT: 5.4 MINS</span>
+            <span style={{ color: 'var(--accent)' }}>AIRSPEED: 92 KM/H</span>
           </div>
         </div>
+
+        {/* Progress bar during rebalance */}
+        {isRebalancing && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Drone Hexacopter Cargo In Flight...</span>
+              <span className="mono">{rebalanceProgress}%</span>
+            </div>
+            <div style={{ width: '100%', height: '7px', backgroundColor: 'var(--surface-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${rebalanceProgress}%`, height: '100%', backgroundColor: 'var(--accent)', transition: 'width 0.3s ease' }} />
+            </div>
+          </div>
+        )}
+
+        {deliveryCompleted && (
+          <div style={{
+            backgroundColor: 'var(--success-bg)',
+            border: '1px solid var(--success-border)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '10px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <CheckCircle2 size={18} color="var(--success)" />
+            <div>
+              <strong style={{ fontSize: '12px', color: 'var(--success)', display: 'block' }}>Delivery Verified & Logged</strong>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                +25 O2 Tanks and +15 Blood Units transitioned to {deficitShelter.name}.
+              </span>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={triggerDroneRebalance}
+          disabled={isRebalancing}
+          className="btn btn-primary"
+          style={{ width: '100%', padding: '12px', marginTop: 'auto', fontWeight: 600 }}
+        >
+          <Plane size={15} />
+          <span>{isRebalancing ? 'Drone Logistics Mesh Dispatched...' : 'Trigger Autonomous Drone Rebalancing'}</span>
+        </button>
       </div>
     </div>
   );

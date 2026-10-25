@@ -11,30 +11,20 @@ import {
   FileText, 
   Layers, 
   Crosshair, 
-  HelpCircle,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
+import { useOperations } from '../context/OperationsContext';
 import { tacticalAudio } from '../utils/audioSystem';
 
-export default function MultimodalTriageLab({ 
-  selectedIncident, 
-  allIncidents, 
-  onSelectIncident,
-  onDispatchUnit
-}) {
-  const activeIncident = selectedIncident || allIncidents[0];
+export default function MultimodalTriageLab() {
+  const { incidents, selectedIncidentId, selectIncident, assignResponder } = useOperations();
+  
+  const activeIncident = incidents.find(i => i.id === selectedIncidentId) || incidents[0];
   const [isScanning, setIsScanning] = useState(false);
   const [scanCompleted, setScanCompleted] = useState(true);
   const [hoveredBox, setHoveredBox] = useState(null);
-  const [dispatchStatus, setDispatchStatus] = useState(activeIncident?.dispatched || false);
   const [customImage, setCustomImage] = useState(null);
-
-  useEffect(() => {
-    if (activeIncident) {
-      setDispatchStatus(activeIncident.dispatched);
-      setScanCompleted(true);
-    }
-  }, [activeIncident]);
 
   const runAiScan = () => {
     setIsScanning(true);
@@ -48,13 +38,11 @@ export default function MultimodalTriageLab({
       tacticalAudio.speakTacticalAlert(
         `AI Triage complete. Structural Damage index: ${activeIncident.damageIndex} percent. Triage level: ${activeIncident.triageCode}.`
       );
-    }, 1800);
+    }, 1600);
   };
 
   const handleDispatch = () => {
-    tacticalAudio.playDispatchConfirmed();
-    setDispatchStatus(true);
-    onDispatchUnit(activeIncident.id);
+    assignResponder(activeIncident.id, 'u1');
   };
 
   const handleFileUpload = (e) => {
@@ -69,53 +57,52 @@ export default function MultimodalTriageLab({
     }
   };
 
-  // Sample bounding boxes for visual overlay
+  // Sample computer vision bounding boxes
   const boundingBoxes = [
-    { id: 'b1', top: '25%', left: '18%', width: '30%', height: '28%', label: 'Structural Breach (98%)', tag: 'CRITICAL', color: '#ff3366' },
-    { id: 'b2', top: '55%', left: '38%', width: '35%', height: '32%', label: 'Entrapped Hazard Zone (96%)', tag: 'HIGH HAZARD', color: '#f59e0b' },
-    { id: 'b3', top: '15%', left: '60%', width: '22%', height: '24%', label: 'Civilians Isolated (94%)', tag: 'RESCUE PRIORITY', color: '#00f0ff' }
+    { id: 'b1', top: '25%', left: '18%', width: '30%', height: '28%', label: 'Structural Breach (98%)', color: 'var(--critical)' },
+    { id: 'b2', top: '55%', left: '38%', width: '35%', height: '32%', label: 'Entrapped Hazard (96%)', color: 'var(--warning)' },
+    { id: 'b3', top: '15%', left: '60%', width: '22%', height: '24%', label: 'Isolated Civilians (94%)', color: 'var(--accent)' }
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', minHeight: '680px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', minHeight: '640px' }}>
       {/* Left Column: Image Viewer with Neural Scan Overlay */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Preset Selector */}
-        <div className="glass-panel" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={16} color="var(--cyan)" />
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#fff' }}>Select Incident Feed to Analyze:</span>
+        <div className="card" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Sparkles size={15} color="var(--accent)" />
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Select Incident Feed:</span>
           </div>
           
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
-            {allIncidents.map(inc => (
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
+            {incidents.slice(0, 3).map(inc => (
               <button
                 key={inc.id}
                 onClick={() => {
                   setCustomImage(null);
-                  onSelectIncident(inc);
+                  selectIncident(inc.id, false);
                   tacticalAudio.playTacticalBeep(1100, 0.04, 0.03);
                 }}
-                className="btn"
+                className="btn btn-xs"
                 style={{
-                  padding: '5px 10px',
-                  fontSize: '11px',
-                  background: activeIncident.id === inc.id && !customImage ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                  color: activeIncident.id === inc.id && !customImage ? 'var(--cyan)' : 'var(--text-secondary)',
-                  border: activeIncident.id === inc.id && !customImage ? '1px solid var(--border-glow)' : '1px solid var(--border-subtle)'
+                  backgroundColor: activeIncident.id === inc.id && !customImage ? 'var(--accent-bg)' : 'var(--surface-secondary)',
+                  color: activeIncident.id === inc.id && !customImage ? 'var(--accent)' : 'var(--text-secondary)',
+                  borderColor: activeIncident.id === inc.id && !customImage ? 'var(--accent)' : 'var(--border-subtle)',
+                  fontWeight: 600
                 }}
               >
-                <span>{inc.title.slice(0, 24)}...</span>
+                <span>{inc.id.toUpperCase()}: {inc.title.slice(0, 18)}...</span>
               </button>
             ))}
 
             {/* Custom Upload Button */}
             <label 
-              className="btn btn-outline" 
-              style={{ padding: '5px 10px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              className="btn btn-secondary btn-xs" 
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
               title="Upload your own disaster photo for instant AI triage"
             >
-              <Upload size={12} color="var(--cyan)" />
+              <Upload size={12} color="var(--accent)" />
               <span>Upload Custom</span>
               <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
             </label>
@@ -123,7 +110,7 @@ export default function MultimodalTriageLab({
         </div>
 
         {/* Main Image Stage */}
-        <div className="glass-panel" style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-lg)', background: '#030509' }}>
+        <div className="card" style={{ position: 'relative', overflow: 'hidden', backgroundColor: '#050811' }}>
           {/* Laser Scanner animation */}
           {isScanning && <div className="laser-scanner" />}
 
@@ -133,7 +120,7 @@ export default function MultimodalTriageLab({
               alt={activeIncident.title} 
               style={{
                 width: '100%',
-                height: '460px',
+                height: '450px',
                 objectFit: 'cover',
                 display: 'block',
                 filter: isScanning ? 'brightness(1.15) contrast(1.1)' : 'none',
@@ -141,15 +128,7 @@ export default function MultimodalTriageLab({
               }} 
             />
 
-            {/* Neural Overlay Grid */}
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'radial-gradient(circle at 50% 50%, transparent 60%, rgba(6, 9, 15, 0.7) 100%)',
-              pointerEvents: 'none'
-            }} />
-
-            {/* AI Bounding Boxes (active when scan completed) */}
+            {/* AI Bounding Boxes */}
             {scanCompleted && boundingBoxes.map(b => (
               <div
                 key={b.id}
@@ -162,205 +141,187 @@ export default function MultimodalTriageLab({
                   width: b.width,
                   height: b.height,
                   border: `2px solid ${b.color}`,
-                  background: hoveredBox === b.id ? 'rgba(0, 240, 255, 0.15)' : 'rgba(0, 0, 0, 0.2)',
-                  boxShadow: hoveredBox === b.id ? `0 0 15px ${b.color}` : 'none',
-                  transition: 'all 0.2s ease',
+                  backgroundColor: hoveredBox === b.id ? 'rgba(8, 145, 178, 0.15)' : 'rgba(0, 0, 0, 0.25)',
+                  boxShadow: hoveredBox === b.id ? `0 0 12px ${b.color}` : 'none',
+                  transition: 'all 0.15s ease',
                   cursor: 'pointer',
                   zIndex: 5
                 }}
               >
-                {/* Box Tag */}
                 <div style={{
                   position: 'absolute',
-                  top: '-20px',
+                  top: '-18px',
                   left: '0',
-                  background: b.color,
-                  color: '#000',
-                  fontSize: '10px',
-                  fontWeight: 800,
-                  padding: '2px 6px',
+                  backgroundColor: b.color,
+                  color: '#FFFFFF',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  padding: '1px 5px',
                   fontFamily: 'var(--font-mono)',
-                  borderRadius: '2px 2px 0 0',
                   whiteSpace: 'nowrap'
                 }}>
                   {b.label}
                 </div>
-                {/* Crosshairs at box corners */}
-                <div style={{ position: 'absolute', top: 0, left: 0, width: 6, height: 6, borderTop: `2px solid #fff`, borderLeft: `2px solid #fff` }} />
-                <div style={{ position: 'absolute', top: 0, right: 0, width: 6, height: 6, borderTop: `2px solid #fff`, borderRight: `2px solid #fff` }} />
-                <div style={{ position: 'absolute', bottom: 0, left: 0, width: 6, height: 6, borderBottom: `2px solid #fff`, borderLeft: `2px solid #fff` }} />
-                <div style={{ position: 'absolute', bottom: 0, right: 0, width: 6, height: 6, borderBottom: `2px solid #fff`, borderRight: `2px solid #fff` }} />
               </div>
             ))}
 
             {/* Bottom HUD bar on image */}
             <div style={{
               position: 'absolute',
-              bottom: 12,
-              left: 12,
-              right: 12,
-              background: 'rgba(7, 11, 20, 0.88)',
-              backdropFilter: 'blur(10px)',
-              padding: '8px 14px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-subtle)',
+              bottom: 10,
+              left: 10,
+              right: 10,
+              backgroundColor: 'rgba(10, 15, 28, 0.88)',
+              backdropFilter: 'blur(8px)',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               fontSize: '11px',
-              color: 'var(--text-secondary)',
+              color: '#F8FAFC',
               fontFamily: 'var(--font-mono)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="live-dot" />
-                <span>NEURAL INFERENCE: RESNET-152 + VISION TRANSFORMER</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="status-dot status-dot-success" />
+                <span>RESNET-152 + VISION TRANSFORMER</span>
               </div>
-              <span style={{ color: 'var(--cyan)' }}>
-                CONFIDENCE: {activeIncident.aiAnalysis.confidence}
+              <span style={{ color: '#22D3EE' }}>
+                CONFIDENCE: {activeIncident.aiAnalysis?.confidence || '98.4%'}
               </span>
             </div>
           </div>
 
-          {/* Trigger Scan Button */}
-          <div style={{ padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Trigger Scan Button Bar */}
+          <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--surface-primary)' }}>
             <div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>SURVEILLANCE ASSET:</span>
-              <strong style={{ fontSize: '13px', color: '#fff' }}>Autonomous Drone Recon Feed 04-A</strong>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>RECON ASSET:</span>
+              <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Autonomous Aerial Sensor Feed 04-A</strong>
             </div>
 
             <button
               onClick={runAiScan}
               disabled={isScanning}
-              className="btn btn-primary"
-              style={{ fontSize: '12px', padding: '8px 16px' }}
-              id="btn-run-ai-scan"
+              className="btn btn-primary btn-sm"
             >
-              <Scan size={14} className={isScanning ? 'radar-sweep-beam' : ''} />
-              <span>{isScanning ? 'Computing Neural Damage Vectors...' : 'Re-Run AI Triage Scan'}</span>
+              <Scan size={14} />
+              <span>{isScanning ? 'Computing Damage Vectors...' : 'Re-Run AI Triage Scan'}</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Right Column: AI Triage Intelligence Report */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div className="glass-panel" style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span className={`badge ${activeIncident.triageCode === 'RED' ? 'badge-red' : 'badge-yellow'}`}>
-                  NATO/FEMA CODE: {activeIncident.triageCode}
+      <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span className={`badge ${activeIncident.triageCode === 'RED' ? 'badge-critical' : 'badge-warning'}`}>
+              NATO/FEMA CODE: {activeIncident.triageCode}
+            </span>
+            <span className="badge badge-accent">
+              EDGE INFERENCE
+            </span>
+          </div>
+          <h3 style={{ fontSize: '18px', margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
+            {activeIncident.title}
+          </h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            📍 {activeIncident.location}
+          </p>
+        </div>
+
+        {/* Metric Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          <div style={{ backgroundColor: 'var(--surface-secondary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Damage Index</span>
+            <strong className="mono" style={{ fontSize: '18px', color: 'var(--critical)' }}>{activeIncident.damageIndex}%</strong>
+            <span style={{ fontSize: '10px', color: 'var(--critical)', display: 'block' }}>Severe Failure</span>
+          </div>
+
+          <div style={{ backgroundColor: 'var(--surface-secondary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Trapped Souls</span>
+            <strong className="mono" style={{ fontSize: '18px', color: 'var(--warning)' }}>{activeIncident.victims}</strong>
+            <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'block' }}>Heat Verified</span>
+          </div>
+
+          <div style={{ backgroundColor: 'var(--surface-secondary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '10px' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Confidence</span>
+            <strong className="mono" style={{ fontSize: '18px', color: 'var(--accent)' }}>{activeIncident.aiAnalysis?.confidence || '98%'}</strong>
+            <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'block' }}>Zero Ambiguity</span>
+          </div>
+        </div>
+
+        {/* Detections */}
+        <div>
+          <h4 style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.04em' }}>
+            Vision Anomaly Detections:
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {(activeIncident.aiAnalysis?.detectedFeatures || []).map((f, idx) => (
+              <div 
+                key={idx}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: 'var(--surface-secondary)',
+                  padding: '7px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                  fontSize: '12px'
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={13} color="var(--accent)" />
+                  <span style={{ color: 'var(--text-primary)' }}>{f.label}</span>
                 </span>
-                <span className="badge badge-purple" style={{ fontSize: '9px' }}>
-                  AI EDGE INFERENCE
+                <span className="mono" style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                  {f.conf}
                 </span>
               </div>
-              <h2 style={{ fontSize: '18px', margin: 0 }}>{activeIncident.title}</h2>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                📍 {activeIncident.location}
-              </p>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Key Damage & Casualty Metric Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Structural Damage</span>
-              <strong style={{ fontSize: '20px', color: '#ff3366', fontFamily: 'var(--font-mono)' }}>{activeIncident.damageIndex}%</strong>
-              <span style={{ fontSize: '10px', color: '#ff758f', display: 'block' }}>Severe Failure</span>
-            </div>
-
-            <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Trapped Civilians</span>
-              <strong style={{ fontSize: '20px', color: '#fbbf24', fontFamily: 'var(--font-mono)' }}>{activeIncident.victims}</strong>
-              <span style={{ fontSize: '10px', color: '#fcd34d', display: 'block' }}>Heat Verified</span>
-            </div>
-
-            <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Model Confidence</span>
-              <strong style={{ fontSize: '20px', color: 'var(--cyan)', fontFamily: 'var(--font-mono)' }}>{activeIncident.aiAnalysis.confidence}</strong>
-              <span style={{ fontSize: '10px', color: 'var(--text-cyan)', display: 'block' }}>Zero Ambiguity</span>
-            </div>
+        {/* AI Actionable Directive */}
+        <div style={{
+          backgroundColor: 'var(--accent-bg)',
+          border: '1px solid var(--accent-border)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '12px'
+        }}>
+          <h4 style={{ fontSize: '11px', color: 'var(--accent)', textTransform: 'uppercase', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Cpu size={13} />
+            <span>Algorithmic Triage Allocation:</span>
+          </h4>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+            {activeIncident.aiAnalysis?.recommendedAction}
+          </p>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+            <strong>Allocated Units:</strong> {activeIncident.aiAnalysis?.priorityUnits}
           </div>
+        </div>
 
-          {/* AI Feature Detections */}
-          <div>
-            <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>
-              Computer Vision Anomaly Detections:
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {activeIncident.aiAnalysis.detectedFeatures.map((f, idx) => (
-                <div 
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid rgba(255, 255, 255, 0.04)',
-                    fontSize: '12px'
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={13} color="var(--cyan)" />
-                    <span>{f.label}</span>
-                  </span>
-                  <span className="mono" style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
-                    {f.conf}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Action Button Bar */}
+        <div style={{ marginTop: 'auto', display: 'flex', gap: '10px' }}>
+          <button
+            onClick={handleDispatch}
+            disabled={activeIncident.dispatched}
+            className={`btn ${activeIncident.dispatched ? 'btn-secondary' : 'btn-critical'}`}
+            style={{ flex: 1, padding: '10px', fontWeight: 600 }}
+          >
+            <Send size={15} />
+            <span>{activeIncident.dispatched ? '✓ Task Force En Route' : 'Authorize Emergency Dispatch'}</span>
+          </button>
 
-          {/* Recommended Action & Unit Allocation */}
-          <div style={{
-            background: 'rgba(0, 240, 255, 0.04)',
-            border: '1px solid var(--border-glow)',
-            borderRadius: 'var(--radius-md)',
-            padding: '14px'
-          }}>
-            <h4 style={{ fontSize: '12px', color: 'var(--cyan)', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Cpu size={14} />
-              <span>Algorithmic Triage Recommendation:</span>
-            </h4>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', marginBottom: '8px' }}>
-              {activeIncident.aiAnalysis.recommendedAction}
-            </p>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-              <strong>Allocated Units:</strong> {activeIncident.aiAnalysis.priorityUnits}
-            </div>
-          </div>
-
-          {/* Action Dispatch Bar */}
-          <div style={{ marginTop: 'auto', display: 'flex', gap: '12px' }}>
-            <button
-              onClick={handleDispatch}
-              disabled={dispatchStatus}
-              className={`btn ${dispatchStatus ? 'btn-outline' : 'btn-danger'}`}
-              style={{ flex: 1, padding: '12px', fontSize: '13px', fontWeight: 700 }}
-              id="btn-authorize-dispatch"
-            >
-              <Send size={16} />
-              <span>{dispatchStatus ? '✓ Rescue Task Force En Route' : 'Authorize Emergency Dispatch'}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                tacticalAudio.playTacticalBeep(1400, 0.05, 0.04);
-                alert(`SitRep Report for Incident ${activeIncident.id} copied to clipboard!`);
-              }}
-              className="btn btn-outline"
-              style={{ padding: '12px 16px', fontSize: '12px' }}
-              title="Export Incident Dossier"
-            >
-              <FileText size={16} />
-              <span>Export SitRep</span>
-            </button>
-          </div>
+          <button
+            onClick={() => alert(`SitRep Report for Incident ${activeIncident.id} copied to clipboard!`)}
+            className="btn btn-secondary"
+            style={{ padding: '10px 14px' }}
+          >
+            <FileText size={15} />
+          </button>
         </div>
       </div>
     </div>

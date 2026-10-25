@@ -1,135 +1,98 @@
 import React, { useState } from 'react';
-import { SCENARIOS } from './data/mockScenarios';
-import Header from './components/Header';
-import TacticalMap from './components/TacticalMap';
-import MultimodalTriageLab from './components/MultimodalTriageLab';
-import EvacuationEngine from './components/EvacuationEngine';
-import ResourceMatrix from './components/ResourceMatrix';
-import CommanderCopilot from './components/CommanderCopilot';
+import { OperationsProvider, useOperations } from './context/OperationsContext';
+import Sidebar from './components/Sidebar';
+import TopNav from './components/TopNav';
+import IncidentDetailPanel from './components/IncidentDetailPanel';
 import CivilianSOSModal from './components/CivilianSOSModal';
 import ImpactBar from './components/ImpactBar';
-import { tacticalAudio } from './utils/audioSystem';
-import { CheckCircle2, AlertTriangle, Send, Bell } from 'lucide-react';
+
+// Views
+import CommandDashboard from './views/CommandDashboard';
+import ExpandedMapView from './views/ExpandedMapView';
+import IncidentIntelligenceView from './views/IncidentIntelligenceView';
+import MultimodalTriageLab from './components/MultimodalTriageLab';
+import EvacuationEngine from './components/EvacuationEngine';
+import ResponderCoordinationView from './views/ResponderCoordinationView';
+import ResourceMatrix from './components/ResourceMatrix';
+import DroneOperationsView from './views/DroneOperationsView';
+import CivilianSOSView from './views/CivilianSOSView';
+import ShelterDirectoryView from './views/ShelterDirectoryView';
+import CommanderCopilot from './components/CommanderCopilot';
+import ActivityHistoryView from './views/ActivityHistoryView';
+import IntegrationsView from './views/IntegrationsView';
+import SettingsView from './views/SettingsView';
+
+import { AlertTriangle, CheckCircle2, Bell } from 'lucide-react';
 import './App.css';
 
-export default function App() {
-  const [selectedScenarioId, setSelectedScenarioId] = useState('hurricane');
-  const [activeTab, setActiveTab] = useState('map');
-  const [isSOSModalOpen, setIsSOSModalOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [toasts, setToasts] = useState([]);
-  const [selectedIncident, setSelectedIncident] = useState(null);
-  const [addedIncidents, setAddedIncidents] = useState([]);
-
-  // Active scenario data
-  const currentScenario = SCENARIOS[selectedScenarioId];
-
-  const showToast = (message, type = 'info') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
-  };
-
-  const handleSelectScenario = (scenarioId) => {
-    setSelectedScenarioId(scenarioId);
-    setSelectedIncident(null);
-    tacticalAudio.playRadarPing();
-    showToast(`Operational Theater shifted to ${SCENARIOS[scenarioId].name}`, 'warning');
-  };
-
-  const handleSelectIncidentForTriage = (incident) => {
-    setSelectedIncident(incident);
-    setActiveTab('triage');
-    tacticalAudio.playTacticalBeep(1200, 0.08, 0.05);
-  };
-
-  const handleDispatchUnit = (incidentId) => {
-    showToast(`Tactical Task Force authorized & dispatched to Incident ${incidentId}!`, 'success');
-  };
-
-  const handleSOSSubmit = (newSOSIncident) => {
-    setAddedIncidents(prev => [newSOSIncident, ...prev]);
-    showToast(`CRITICAL: Civilian SOS Beacon received! Injected into Tactical Operations Grid.`, 'critical');
-    setActiveTab('map');
-  };
+function MainAppShell() {
+  const { activeNav, isSidebarCollapsed, toasts } = useOperations();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="app-container">
-      {/* Tactical Header */}
-      <Header
-        currentScenario={currentScenario}
-        onSelectScenario={handleSelectScenario}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onTriggerSOS={() => {
-          tacticalAudio.playTacticalBeep(1400, 0.08, 0.06);
-          setIsSOSModalOpen(true);
-        }}
-        isMuted={isMuted}
-        setIsMuted={setIsMuted}
+    <div className="app-shell">
+      {/* Persistent Left Sidebar */}
+      <Sidebar
+        mobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
       />
 
-      {/* Main Workspace Stage */}
-      <main className="main-content">
-        {activeTab === 'map' && (
-          <TacticalMap
-            scenario={currentScenario}
-            onSelectIncident={handleSelectIncidentForTriage}
-            onDispatchUnit={handleDispatchUnit}
-            onNavigateToEvac={() => setActiveTab('evac')}
-            addedIncidents={addedIncidents}
-          />
-        )}
+      {/* Main Content Area */}
+      <div className={`main-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        {/* Top Navigation Bar */}
+        <TopNav onOpenMobileSidebar={() => setMobileSidebarOpen(true)} />
 
-        {activeTab === 'triage' && (
-          <MultimodalTriageLab
-            selectedIncident={selectedIncident}
-            allIncidents={[...currentScenario.incidents, ...addedIncidents]}
-            onSelectIncident={setSelectedIncident}
-            onDispatchUnit={handleDispatchUnit}
-          />
-        )}
+        {/* Operational Workspace View Switcher */}
+        <main className="content-stage">
+          {activeNav === 'overview-dashboard' && <CommandDashboard />}
+          {activeNav === 'overview-map' && <ExpandedMapView />}
+          {activeNav === 'ops-incidents' && <IncidentIntelligenceView />}
+          {activeNav === 'ops-triage' && <MultimodalTriageLab />}
+          {activeNav === 'ops-evac' && <EvacuationEngine />}
+          {activeNav === 'ops-responders' && <ResponderCoordinationView />}
+          {activeNav === 'ops-supply' && <ResourceMatrix />}
+          {activeNav === 'ops-drones' && <DroneOperationsView />}
+          {activeNav === 'community-sos' && <CivilianSOSView />}
+          {activeNav === 'community-shelters' && <ShelterDirectoryView />}
+          {activeNav === 'insights-reports' && <CommanderCopilot />}
+          {activeNav === 'insights-activity' && <ActivityHistoryView />}
+          {activeNav === 'system-integrations' && <IntegrationsView />}
+          {activeNav === 'system-settings' && <SettingsView />}
 
-        {activeTab === 'evac' && (
-          <EvacuationEngine scenario={currentScenario} />
-        )}
+          {/* Operational Impact Bar (Rendered at bottom of dashboard and overview views) */}
+          {(activeNav === 'overview-dashboard' || activeNav === 'overview-map') && <ImpactBar />}
+        </main>
+      </div>
 
-        {activeTab === 'supply' && (
-          <ResourceMatrix scenario={currentScenario} />
-        )}
-
-        {activeTab === 'copilot' && (
-          <CommanderCopilot scenario={currentScenario} />
-        )}
-
-        {/* Quantifiable Impact & Mission Banner */}
-        <ImpactBar scenario={currentScenario} />
-      </main>
+      {/* Context-Aware Incident Detail Panel (Right-Side Drawer) */}
+      <IncidentDetailPanel />
 
       {/* Civilian SOS Modal */}
-      <CivilianSOSModal
-        isOpen={isSOSModalOpen}
-        onClose={() => setIsSOSModalOpen(false)}
-        onSubmitSOS={handleSOSSubmit}
-      />
+      <CivilianSOSModal />
 
       {/* Real-time Toast Notifications */}
       <div className="toast-container">
         {toasts.map(t => (
-          <div key={t.id} className="toast">
+          <div key={t.id} className="toast-item">
             {t.type === 'critical' ? (
-              <AlertTriangle size={18} color="#ff3366" />
+              <AlertTriangle size={16} color="var(--critical)" />
             ) : t.type === 'success' ? (
-              <CheckCircle2 size={18} color="#10b981" />
+              <CheckCircle2 size={16} color="var(--success)" />
             ) : (
-              <Bell size={18} color="var(--cyan)" />
+              <Bell size={16} color="var(--accent)" />
             )}
             <span>{t.message}</span>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <OperationsProvider>
+      <MainAppShell />
+    </OperationsProvider>
   );
 }
